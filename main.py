@@ -69,7 +69,7 @@ def add(name: str, minutes: int) -> None:
     task = make_task(name=name, duration=dt.timedelta(minutes=minutes))
     # TODO: validation for task time length
 
-    daylist.tasks.append(task)
+    daylist.add_task(task)
     send_to_storage(daylist)
 
     print("Added new task to your list!")
@@ -86,7 +86,7 @@ def add_task_batch(filename: str) -> None:
 
     tasks = [make_task_from_string(task_str) for task_str in contents["tasks"]]
     for task in tasks:
-        daylist.tasks.append(task)
+        daylist.add_task(task)
 
     send_to_storage(daylist)
     print(f"Added {len(tasks)} new task(s) to your list!")

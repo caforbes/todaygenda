@@ -12,11 +12,19 @@ class TaskStatus(StrEnum):
     DONE = auto()
 
 
-class Task(BaseModel):
+class BaseModelWithMetadata(BaseModel):
+    created: datetime = Field(default_factory=datetime.now)
+    updated: datetime = Field(default_factory=datetime.now)
+
+    def mark_updated(self):
+        self.updated = datetime.now()
+
+
+class Task(BaseModelWithMetadata):
     name: Annotated[str, StringConstraints(max_length=200)]
     duration: timedelta = Field(default_factory=timedelta)
+    # TODO: max: 24h / 86400
     status: TaskStatus = TaskStatus.PENDING
-    created: datetime = Field(default_factory=datetime.now)
 
     def durationstr(self) -> str:
         """
@@ -25,8 +33,7 @@ class Task(BaseModel):
         return utils.duration_to_str(self.duration)
 
 
-class Daylist(BaseModel):
-    created: datetime = Field(default_factory=datetime.now)
+class Daylist(BaseModelWithMetadata):
     tasks: list[Task] = []
 
     def is_for_today(self) -> bool:
@@ -34,3 +41,10 @@ class Daylist(BaseModel):
 
     def task_duration(self) -> timedelta:
         return utils.deltasum(deltas=[task.duration for task in self.tasks])
+
+    def add_task(self, task: Task):
+        if task in self.tasks:
+            raise ValueError("This task is already on your list")
+
+        self.tasks.append(task)
+        self.mark_updated()
