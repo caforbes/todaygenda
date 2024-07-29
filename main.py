@@ -1,6 +1,8 @@
 import datetime as dt
 import json
 import os
+from rich import print
+from rich.table import Table
 import typer
 
 from src import utils
@@ -35,28 +37,27 @@ def make_new_task(task_string: str) -> dict:
     return task
 
 
+def display_tasks(task_list: list[dict]) -> None:
+    table = Table("Todos", "Time to Finish")
+    for task in task_list:
+        table.add_row(task["name"], utils.duration_secs_to_str(task["duration"]))
+    print(table)
+
+
 @app.command()
 def show_summary() -> None:
     todaylist = load_todaylist()
 
     if todaylist["tasks"]:
-        print("Tasks:")
-        for task in todaylist["tasks"]:
-            print(
-                "\t", task["name"], "\t\t", utils.duration_secs_to_str(task["duration"])
-            )
+        display_tasks(todaylist["tasks"])
         finish_time_str = utils.duration_secs_to_str(
             int(todaylist["total_duration"].total_seconds())
         )
-        print(f"Time to finish: {finish_time_str}\n")
-    # if todaylist["events"]:
-    #     print("Events:")
-    #     for event in todaylist["events"]:
-    #         print("\t", event)
+        print(f"Total Time to Finish: {finish_time_str}\n")
 
     now = dt.datetime.now()
-    print(f"Current time:\t\t{now}")
-    print(f"You could finish by:\t{now + todaylist["total_duration"]}")
+    print(f"Current Time:\t\t{now}")
+    print(f"Expected Finish:\t{now + todaylist["total_duration"]}")
 
 
 if __name__ == "__main__":
