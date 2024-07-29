@@ -1,20 +1,23 @@
 import datetime as dt
 import json
+import logging
 import os
 from rich import print
 from rich.table import Table
 import typer
 
 from src import utils
-from src.models import Task
+from src.models import Daylist, Task
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
+
+storage = "daylist.json"
+this_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def load_todaylist() -> dict:
+def load_from_file(filename: str) -> dict:
     # load from flat file
-    this_dir = os.path.abspath(os.path.dirname(__file__))
-    task_file = os.path.join(this_dir, "today.json")
+    task_file = os.path.join(this_dir, filename)
     with open(task_file) as f:
         contents = json.load(f)
 
@@ -22,11 +25,35 @@ def load_todaylist() -> dict:
     contents["tasks"] = [
         make_task_from_string(task_str) for task_str in contents["tasks"]
     ]
-    contents["list_duration"] = utils.deltasum(
-        deltas=[task.duration for task in contents["tasks"]]
-    )
 
     return contents
+
+
+def build_from_storage() -> Daylist:
+    daylist_file = os.path.join(this_dir, storage)
+    if os.path.exists(daylist_file):
+        with open(daylist_file) as f:
+            daylist = json.load(f)
+        daylist = Daylist.model_validate(daylist)
+    else:
+        daylist = reset_daylist()
+
+    # if daylist is old, build a new one
+    if not daylist.is_for_today():
+        daylist = reset_daylist()
+
+    return daylist
+
+
+def send_to_storage(daylist: Daylist) -> None:
+    daylist_file = os.path.join(this_dir, storage)
+    with open(daylist_file, "w") as writer:
+        json.dump(daylist.model_dump(mode="json"), writer, ensure_ascii=False)
+
+
+def reset_daylist() -> Daylist:
+    logging.info("Building new list for today!")
+    return Daylist()
 
 
 def make_task_from_string(task_string: str) -> Task:
@@ -50,21 +77,36 @@ def display_tasks(task_list: list[Task]) -> None:
 
 
 @app.command()
-def show_summary() -> None:
-    todaylist = load_todaylist()
+def add(name: str, minutes: int) -> None:
+    daylist = build_from_storage()
 
-    if todaylist["tasks"]:
-        display_tasks(todaylist["tasks"])
-        finish_time_str = utils.duration_to_str(todaylist["list_duration"])
-        print(f"Total Time to Finish: {finish_time_str}\n")
+    task = make_task(name=name, duration=dt.timedelta(minutes=minutes))
+    # TODO: validation for task time length
+
+    daylist.tasks.append(task)
+    send_to_storage(daylist)
+
+    print("Added new task to your list!")
+
+
+@app.command()
+def show() -> None:
+    daylist = build_from_storage()
+    # save in case you built/reset it
+    send_to_storage(daylist)
+
+    if daylist.tasks:
+        display_tasks(daylist.tasks)
+        print(f"Total Time to Finish: {daylist.task_duration()}\n")
     else:
         print("Your todolist is empty!")
 
     now = dt.datetime.now()
     print(f"Current Time:\t\t{now}")
-    endtime = now + todaylist["list_duration"]
+    endtime = now + daylist.task_duration()
     print(f"Expected Finish:\t{endtime}")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     app()

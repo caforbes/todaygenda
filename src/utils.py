@@ -63,4 +63,4 @@ def duration_to_str(delta: timedelta) -> str:
 
 
 def deltasum(deltas: list[timedelta]) -> timedelta:
-    return reduce(lambda t1, t2: t1 + t2, deltas)
+    return reduce(lambda t1, t2: t1 + t2, deltas, timedelta())
