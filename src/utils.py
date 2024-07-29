@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import reduce
 import re
 import logging
 
@@ -16,7 +17,7 @@ def parse_out_duration(raw_str: str) -> dict:
         return {"str": split_str[0], "dur": split_str[1]}
 
 
-def duration_str_to_secs(dur_str: str) -> int:
+def duration_from_str(dur_str: str) -> timedelta:
     # grab user input for hours/minutes
     hour_match = re.search(r"([\d\.]+)\s?hr?", dur_str, flags=re.IGNORECASE)
     min_match = re.search(r"([\d\.]+)\s?mi?n?", dur_str, flags=re.IGNORECASE)
@@ -42,10 +43,11 @@ def duration_str_to_secs(dur_str: str) -> int:
             next_whole_minute = seconds // SECONDS_IN_MIN + 1
             delta = timedelta(minutes=next_whole_minute)
 
-    return int(delta.total_seconds())
+    return delta
 
 
-def duration_secs_to_str(seconds: int) -> str:
+def duration_to_str(delta: timedelta) -> str:
+    seconds = round(delta.total_seconds())
     hours, seconds = seconds // SECONDS_IN_HR, seconds % SECONDS_IN_HR
     minutes, seconds = seconds // SECONDS_IN_MIN, seconds % SECONDS_IN_MIN
 
@@ -60,6 +62,5 @@ def duration_secs_to_str(seconds: int) -> str:
         return ""
 
 
-def total_delta(all_durations: list[int]) -> timedelta:
-    total_seconds = sum(all_durations)
-    return timedelta(seconds=total_seconds)
+def deltasum(deltas: list[timedelta]) -> timedelta:
+    return reduce(lambda t1, t2: t1 + t2, deltas)

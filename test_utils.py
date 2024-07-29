@@ -1,3 +1,4 @@
+from datetime import timedelta
 import pytest
 
 import src.utils as main
@@ -38,20 +39,20 @@ def test_parse_duration_str(raw, expected_str, expected_dur):
         ("1.5h 30m", 120),
     ],
 )
-def test_duration_str_to_secs(raw, expected_m):
-    result = main.duration_str_to_secs(raw)
-    assert isinstance(result, int)
-    assert result == expected_m * 60
+def test_duration_from_str(raw, expected_m):
+    result = main.duration_from_str(raw)
+    assert isinstance(result, timedelta)
+    assert result == timedelta(minutes=expected_m)
 
 
 @pytest.mark.parametrize(
     "raw",
     ["0m", "0h", "0h0m", "", "1.5.1.5h", "h"],
 )
-def test_duration_str_to_secs_none(raw):
-    result = main.duration_str_to_secs(raw)
-    assert isinstance(result, int)
-    assert result == 0
+def test_duration_from_str_none(raw):
+    result = main.duration_from_str(raw)
+    assert isinstance(result, timedelta)
+    assert result == timedelta()
 
 
 @pytest.mark.parametrize(
@@ -67,7 +68,7 @@ def test_duration_str_to_secs_none(raw):
         (36000, "10h"),
     ],
 )
-def test_duration_secs_to_str(seconds, expected_label):
-    result = main.duration_secs_to_str(seconds)
+def test_duration_to_str(seconds, expected_label):
+    result = main.duration_to_str(timedelta(seconds=seconds))
     assert isinstance(result, str)
     assert result == expected_label

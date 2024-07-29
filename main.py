@@ -6,6 +6,7 @@ from rich.table import Table
 import typer
 
 from src import utils
+from src.models import Task
 
 app = typer.Typer()
 
@@ -18,29 +19,33 @@ def load_todaylist() -> dict:
         contents = json.load(f)
 
     # convert to app objects
-    contents["tasks"] = [make_new_task(task_str) for task_str in contents["tasks"]]
-    contents["total_duration"] = utils.total_delta(
-        all_durations=[task["duration"] for task in contents["tasks"]]
+    contents["tasks"] = [
+        make_task_from_string(task_str) for task_str in contents["tasks"]
+    ]
+    contents["list_duration"] = utils.deltasum(
+        deltas=[task.duration for task in contents["tasks"]]
     )
 
     return contents
 
 
-def make_new_task(task_string: str) -> dict:
+def make_task_from_string(task_string: str) -> Task:
     split_task = utils.parse_out_duration(task_string)
-
-    task = {
-        "name": split_task["str"],
-        "duration": utils.duration_str_to_secs(split_task["dur"]),
-        "status": "new",
-    }
-    return task
+    return make_task(
+        name=split_task["str"],
+        duration=utils.duration_from_str(split_task["dur"]),
+    )
 
 
-def display_tasks(task_list: list[dict]) -> None:
-    table = Table("Todos", "Time to Finish")
-    for task in task_list:
-        table.add_row(task["name"], utils.duration_secs_to_str(task["duration"]))
+def make_task(name: str, duration: dt.timedelta) -> Task:
+    return Task(name=name, duration=duration)
+
+
+def display_tasks(task_list: list[Task]) -> None:
+    table = Table("#", "Todos", "Time to Finish")
+    for idx, task in enumerate(task_list):
+        temp_index = idx + 1
+        table.add_row(str(temp_index), task.name, task.durationstr())
     print(table)
 
 
@@ -50,14 +55,15 @@ def show_summary() -> None:
 
     if todaylist["tasks"]:
         display_tasks(todaylist["tasks"])
-        finish_time_str = utils.duration_secs_to_str(
-            int(todaylist["total_duration"].total_seconds())
-        )
+        finish_time_str = utils.duration_to_str(todaylist["list_duration"])
         print(f"Total Time to Finish: {finish_time_str}\n")
+    else:
+        print("Your todolist is empty!")
 
     now = dt.datetime.now()
     print(f"Current Time:\t\t{now}")
-    print(f"Expected Finish:\t{now + todaylist["total_duration"]}")
+    endtime = now + todaylist["list_duration"]
+    print(f"Expected Finish:\t{endtime}")
 
 
 if __name__ == "__main__":
