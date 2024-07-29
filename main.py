@@ -15,20 +15,6 @@ storage = "daylist.json"
 this_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def load_from_file(filename: str) -> dict:
-    # load from flat file
-    task_file = os.path.join(this_dir, filename)
-    with open(task_file) as f:
-        contents = json.load(f)
-
-    # convert to app objects
-    contents["tasks"] = [
-        make_task_from_string(task_str) for task_str in contents["tasks"]
-    ]
-
-    return contents
-
-
 def build_from_storage() -> Daylist:
     daylist_file = os.path.join(this_dir, storage)
     if os.path.exists(daylist_file):
@@ -58,7 +44,7 @@ def reset_daylist() -> Daylist:
 
 def make_task_from_string(task_string: str) -> Task:
     split_task = utils.parse_out_duration(task_string)
-    return make_task(
+    return Task(
         name=split_task["str"],
         duration=utils.duration_from_str(split_task["dur"]),
     )
@@ -87,6 +73,23 @@ def add(name: str, minutes: int) -> None:
     send_to_storage(daylist)
 
     print("Added new task to your list!")
+
+
+@app.command()
+def add_task_batch(filename: str) -> None:
+    daylist = build_from_storage()
+
+    # load from flat file
+    task_file = os.path.join(this_dir, filename)
+    with open(task_file) as f:
+        contents = json.load(f)
+
+    tasks = [make_task_from_string(task_str) for task_str in contents["tasks"]]
+    for task in tasks:
+        daylist.tasks.append(task)
+
+    send_to_storage(daylist)
+    print(f"Added {len(tasks)} new task(s) to your list!")
 
 
 @app.command()
