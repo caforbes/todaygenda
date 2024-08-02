@@ -31,7 +31,7 @@ class TestDaylistModel:
         return tasks
 
     def test_task_duration(self):
-        task_times = [0, 120]
+        task_times = [10, 120]
         tasks = self.setup_tasks(durs=task_times)
         test_list = Daylist(tasks=tasks)
 
