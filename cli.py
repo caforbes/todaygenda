@@ -8,6 +8,7 @@ from rich.table import Table
 import typer
 
 from src.models import Daylist, Task
+from src.utils import PRETTY_DATE_FORMAT
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -37,9 +38,9 @@ def show() -> None:
     print(f"Total Time to Finish: {daylist.total_estimate()}\n")
 
     now = dt.datetime.now()
-    print(f"Current Time:\t\t{now}")
+    print(f"Current Time:\t\t{now.strftime(PRETTY_DATE_FORMAT)}")
     endtime = now + daylist.total_estimate()
-    print(f"Estimated Finish:\t{endtime}")
+    print(f"Estimated Finish:\t{endtime.strftime(PRETTY_DATE_FORMAT)}")
 
 
 @app.command()

@@ -8,6 +8,8 @@ SECONDS_IN_MIN = 60
 MINS_IN_HR = 60
 SECONDS_IN_HR = SECONDS_IN_MIN * MINS_IN_HR
 
+PRETTY_DATE_FORMAT = "%a %I:%M %p"
+
 
 def parse_out_duration(raw_str: str) -> dict:
     split_str = [s.strip() for s in raw_str.split("\t", 1)]
