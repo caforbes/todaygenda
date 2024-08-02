@@ -7,11 +7,13 @@ name = "pypi"
 typer = "*"
 rich = "*"
 pydantic = "*"
+python-dotenv = "*"
 
 [dev-packages]
 pytest = "*"
 black = "*"
 flake8 = "*"
+pytest-env = "*"
 
 [requires]
 python_version = "3.12"
