@@ -35,6 +35,7 @@ def test_parse_duration_str(raw, expected_str, expected_dur):
         ("1m1h", 61),
         ("1h 1m", 61),
         ("1.5h", 90),
+        ("1.1m", 2),
         ("1.5m", 2),
         ("1.5h 30m", 120),
     ],
@@ -72,3 +73,17 @@ def test_duration_to_str(seconds, expected_label):
     result = main.duration_to_str(timedelta(seconds=seconds))
     assert isinstance(result, str)
     assert result == expected_label
+
+
+@pytest.mark.parametrize(
+    "list_of_seconds,total_seconds",
+    [
+        ([], 0),
+        ([0, 0, 0], 0),
+        ([1], 1),
+        ([1, 2, 3], 6),
+    ],
+)
+def test_deltasum(list_of_seconds, total_seconds):
+    list_of_deltas = [timedelta(seconds=sec) for sec in list_of_seconds]
+    assert main.deltasum(list_of_deltas) == timedelta(seconds=total_seconds)

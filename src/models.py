@@ -1,15 +1,9 @@
 from datetime import datetime, timedelta
 from enum import StrEnum, auto
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing_extensions import Annotated
 
 from src import utils
-
-
-class TaskStatus(StrEnum):
-    PENDING = auto()
-    ACTIVE = auto()
-    DONE = auto()
 
 
 class BaseModelWithMetadata(BaseModel):
@@ -20,11 +14,23 @@ class BaseModelWithMetadata(BaseModel):
         self.updated = datetime.now()
 
 
+class TaskStatus(StrEnum):
+    PENDING = auto()
+    ACTIVE = auto()
+    DONE = auto()
+
+
 class Task(BaseModelWithMetadata):
     name: Annotated[str, StringConstraints(max_length=200)]
     duration: timedelta = Field(default_factory=timedelta)
-    # TODO: max: 24h / 86400
     status: TaskStatus = TaskStatus.PENDING
+
+    @field_validator("duration")
+    @classmethod
+    def duration_less_than_24h(cls, dur: timedelta) -> timedelta:
+        if dur.days > 0:
+            raise ValueError("Task cannot be longer than 24 hours")
+        return dur
 
     def durationstr(self) -> str:
         """
@@ -36,11 +42,11 @@ class Task(BaseModelWithMetadata):
 class Daylist(BaseModelWithMetadata):
     tasks: list[Task] = []
 
-    def is_for_today(self) -> bool:
-        return self.created.date() == datetime.now().date()
-
     def task_duration(self) -> timedelta:
         return utils.deltasum(deltas=[task.duration for task in self.tasks])
+
+    def is_for_today(self) -> bool:
+        return self.created.date() == datetime.now().date()
 
     def add_task(self, task: Task):
         if task in self.tasks:
