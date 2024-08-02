@@ -34,10 +34,10 @@ def show() -> None:
         print("Your todolist is empty!")
         return
 
-    display_tasks(daylist.tasks)
+    now = dt.datetime.now()
+    display_tasks(daylist.tasks, now)
     print(f"Total Time to Finish: {daylist.total_estimate()}\n")
 
-    now = dt.datetime.now()
     print(f"Current Time:\t\t{now.strftime(PRETTY_DATE_FORMAT)}")
     endtime = now + daylist.total_estimate()
     print(f"Estimated Finish:\t{endtime.strftime(PRETTY_DATE_FORMAT)}")
@@ -126,14 +126,21 @@ def make_task(name: str, estimate: dt.timedelta) -> Task:
     return Task(name=name, estimate=estimate)
 
 
-def display_tasks(task_list: list[Task]) -> None:
+def display_tasks(task_list: list[Task], start_time: dt.datetime) -> None:
     """
     Print a pretty table of the current set of tasks.
     """
-    table = Table("#", "Todos", "Time estimate")
+    table = Table("#", "Todos", "Time estimate", "Expected start")
     for idx, task in enumerate(task_list):
         temp_index = idx + 1
-        table.add_row(str(temp_index), task.name, task.estimatestr())
+        table.add_row(
+            str(temp_index),
+            task.name,
+            task.estimatestr(),
+            start_time.strftime(PRETTY_DATE_FORMAT),
+        )
+        start_time += task.estimate
+
     print(table)
 
 
