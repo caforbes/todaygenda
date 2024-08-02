@@ -1,0 +1,6 @@
+[run]
+omit = 
+    test/*
+    test*.py
+[report]
+fail_under = 90

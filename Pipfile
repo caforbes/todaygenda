@@ -4,15 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-typer = "*"
-rich = "*"
 pydantic = "*"
 python-dotenv = "*"
+rich = "*"
+typer = "*"
 
 [dev-packages]
-pytest = "*"
 black = "*"
 flake8 = "*"
+pytest = "*"
+pytest-cov = "*"
 pytest-env = "*"
 
 [requires]
