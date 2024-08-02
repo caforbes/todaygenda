@@ -24,7 +24,7 @@ daylist_file = os.path.join(this_dir, storage)
 @app.command()
 def show() -> None:
     """
-    Print today's todolist and your expected completion time.
+    Display today's todolist and show your expected completion time.
     """
     daylist = build_from_storage()
     # save in case you built/reset it
@@ -46,7 +46,7 @@ def show() -> None:
 @app.command()
 def add(name: str, minutes: int) -> None:
     """
-    Add a new task to your todolist, proving the expected task estimate in minutes.
+    Add a new task to your todolist, including the expected task estimate in minutes.
     """
     daylist = build_from_storage()
 
@@ -67,6 +67,23 @@ def add(name: str, minutes: int) -> None:
 
 #     send_to_storage(daylist)
 #     print(f"Added new task to your list!")
+
+
+@app.command()
+def delete(task_number: int) -> None:
+    """
+    Permanently remove a task from your todolist.
+    """
+    daylist = build_from_storage()
+    task_index = task_number - 1
+
+    if task_index not in range(len(daylist.tasks)):
+        raise ValueError(f"Can't find requested task; action canceled.")
+
+    daylist.remove_task(task_index)
+    send_to_storage(daylist)
+
+    print(f"Removed task #{task_number} from your list!")
 
 
 # Helpers

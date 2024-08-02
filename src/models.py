@@ -78,3 +78,10 @@ class Daylist(BaseModelWithMetadata):
 
         self.tasks.append(task)
         self.mark_updated()
+
+    def remove_task(self, index: int):
+        """
+        Remove a task from this list.
+        """
+        self.tasks.pop(index)  # just drop task for now
+        self.mark_updated()
