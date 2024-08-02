@@ -1,5 +1,6 @@
 import json
 import os
+from unittest import result
 import pytest
 
 import cli
@@ -16,6 +17,36 @@ def clear_storage() -> None:
     assert "test" in cli.daylist_file
     if os.path.exists(cli.daylist_file):
         os.remove(cli.daylist_file)
+
+
+# Show
+
+
+def test_show_typical_userflow(capsys):
+    cli.build_from_storage()
+
+    cli.add("test task", 55)
+    cli.show()
+
+    captured = capsys.readouterr()
+    assert "estimate" in captured.out.lower()
+
+    result = get_storage_json()
+    assert os.path.exists(cli.daylist_file)
+    assert len(result["tasks"]) == 1
+    clear_storage()
+
+
+def test_show_builds_list(capsys):
+    clear_storage()
+
+    cli.show()
+
+    captured = capsys.readouterr()
+    assert "new list" in captured.out.lower()
+
+    assert os.path.exists(cli.daylist_file)
+    clear_storage()
 
 
 # Add

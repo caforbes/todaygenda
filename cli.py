@@ -7,7 +7,6 @@ from rich import print
 from rich.table import Table
 import typer
 
-from src import utils
 from src.models import Daylist, Task
 
 app = typer.Typer(no_args_is_help=True)
@@ -49,7 +48,7 @@ def reset_daylist() -> Daylist:
     """
     Build a fresh daylist, with prompt as needed.
     """
-    logging.info("Building new list for today!")
+    print("Building new list for today!")
     return Daylist()
 
 
@@ -76,7 +75,7 @@ def display_tasks(task_list: list[Task]) -> None:
     """
     Print a pretty table of the current set of tasks.
     """
-    table = Table("#", "Todos", "Time to Finish")
+    table = Table("#", "Todos", "Time estimate")
     for idx, task in enumerate(task_list):
         temp_index = idx + 1
         table.add_row(str(temp_index), task.name, task.durationstr())
@@ -128,7 +127,7 @@ def show() -> None:
     now = dt.datetime.now()
     print(f"Current Time:\t\t{now}")
     endtime = now + daylist.task_duration()
-    print(f"Expected Finish:\t{endtime}")
+    print(f"Estimated Finish:\t{endtime}")
 
 
 if __name__ == "__main__":
