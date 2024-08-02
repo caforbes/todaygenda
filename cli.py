@@ -17,6 +17,60 @@ this_dir = os.path.abspath(os.path.dirname(__file__))
 daylist_file = os.path.join(this_dir, storage)
 
 
+# Commands
+
+
+@app.command()
+def show() -> None:
+    """
+    Print today's todolist and your expected completion time.
+    """
+    daylist = build_from_storage()
+    # save in case you built/reset it
+    send_to_storage(daylist)
+
+    if not daylist.tasks:
+        print("Your todolist is empty!")
+        return
+
+    display_tasks(daylist.tasks)
+    print(f"Total Time to Finish: {daylist.total_estimate()}\n")
+
+    now = dt.datetime.now()
+    print(f"Current Time:\t\t{now}")
+    endtime = now + daylist.total_estimate()
+    print(f"Estimated Finish:\t{endtime}")
+
+
+@app.command()
+def add(name: str, minutes: int) -> None:
+    """
+    Add a new task to your todolist, proving the expected task estimate in minutes.
+    """
+    daylist = build_from_storage()
+
+    task = make_task(name=name, estimate=dt.timedelta(minutes=minutes))
+
+    daylist.add_task(task)
+    send_to_storage(daylist)
+
+    print("Added new task to your list!")
+
+
+# @app.command()
+# def add_string(task_text: str) -> None:
+#     daylist = build_from_storage()
+
+#     task = make_task_from_string(task_text)
+#     daylist.add_task(task)
+
+#     send_to_storage(daylist)
+#     print(f"Added new task to your list!")
+
+
+# Helpers
+
+
 def build_from_storage() -> Daylist:
     """
     Check storage for the current daylist.
@@ -52,23 +106,23 @@ def reset_daylist() -> Daylist:
     return Daylist()
 
 
-# TODO: fix parsing duration on CLI (no tab character)
+# TODO: fix parsing time estimate on CLI (no tab character)
 # def make_task_from_string(task_string: str) -> Task:
 #     """
 #     Parse a string to find the right details, build a new Task from it.
 #     """
-#     split_task = utils.parse_out_duration(task_string)
+#     split_task = utils.parse_out_estimate(task_string)
 #     return Task(
 #         name=split_task["str"],
-#         duration=utils.duration_from_str(split_task["dur"]),
+#         estimate=utils.duration_from_str(split_task["dur"]),
 #     )
 
 
-def make_task(name: str, duration: dt.timedelta) -> Task:
+def make_task(name: str, estimate: dt.timedelta) -> Task:
     """
     Build a new Task from provided details.
     """
-    return Task(name=name, duration=duration)
+    return Task(name=name, estimate=estimate)
 
 
 def display_tasks(task_list: list[Task]) -> None:
@@ -78,56 +132,8 @@ def display_tasks(task_list: list[Task]) -> None:
     table = Table("#", "Todos", "Time estimate")
     for idx, task in enumerate(task_list):
         temp_index = idx + 1
-        table.add_row(str(temp_index), task.name, task.durationstr())
+        table.add_row(str(temp_index), task.name, task.estimatestr())
     print(table)
-
-
-@app.command()
-def add(name: str, minutes: int) -> None:
-    """
-    Add a new task to your todolist, proving the expected task duration in minutes.
-    """
-    daylist = build_from_storage()
-
-    task = make_task(name=name, duration=dt.timedelta(minutes=minutes))
-
-    daylist.add_task(task)
-    send_to_storage(daylist)
-
-    print("Added new task to your list!")
-
-
-# @app.command()
-# def add_string(task_text: str) -> None:
-#     daylist = build_from_storage()
-
-#     task = make_task_from_string(task_text)
-#     daylist.add_task(task)
-
-#     send_to_storage(daylist)
-#     print(f"Added new task to your list!")
-
-
-@app.command()
-def show() -> None:
-    """
-    Print today's todolist and your expected completion time.
-    """
-    daylist = build_from_storage()
-    # save in case you built/reset it
-    send_to_storage(daylist)
-
-    if not daylist.tasks:
-        print("Your todolist is empty!")
-        return
-
-    display_tasks(daylist.tasks)
-    print(f"Total Time to Finish: {daylist.task_duration()}\n")
-
-    now = dt.datetime.now()
-    print(f"Current Time:\t\t{now}")
-    endtime = now + daylist.task_duration()
-    print(f"Estimated Finish:\t{endtime}")
 
 
 if __name__ == "__main__":

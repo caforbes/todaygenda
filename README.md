@@ -17,7 +17,7 @@ This app allows you to create an agenda based on what you would like to accompli
     python -m cli --help
     ```
 
-4. Add tasks to your todolist, with durations in minutes:
+4. Add tasks to your todolist, with time estimates in minutes:
 
     ```sh
     python -m cli add "task I have to do" 15

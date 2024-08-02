@@ -5,7 +5,8 @@ import logging
 
 
 SECONDS_IN_MIN = 60
-SECONDS_IN_HR = 60 * 60
+MINS_IN_HR = 60
+SECONDS_IN_HR = SECONDS_IN_MIN * MINS_IN_HR
 
 
 def parse_out_duration(raw_str: str) -> dict:
