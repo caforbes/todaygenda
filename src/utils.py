@@ -1,5 +1,6 @@
 from datetime import timedelta
 from functools import reduce
+from math import ceil
 import re
 import logging
 
@@ -37,14 +38,9 @@ def duration_from_str(dur_str: str) -> timedelta:
 
     # round up to nearest whole minute
     if delta:
-        seconds = int(delta.total_seconds())
-
-        is_partial_second = delta.total_seconds() != seconds
-        is_partial_minute = bool(seconds % SECONDS_IN_MIN)
-
-        if is_partial_second or is_partial_minute:
-            next_whole_minute = seconds // SECONDS_IN_MIN + 1
-            delta = timedelta(minutes=next_whole_minute)
+        seconds = ceil(delta.total_seconds())  # round up
+        next_whole_minute = ceil(seconds / SECONDS_IN_MIN)
+        delta = timedelta(minutes=next_whole_minute)
 
     return delta
 
