@@ -6,9 +6,10 @@ import os
 from rich import print
 from rich.table import Table
 import typer
+from typing_extensions import Annotated
 
 from src.models import Daylist, Task
-from src.utils import PRETTY_DATE_FORMAT
+from src.utils import PRETTY_DATE_FORMAT, duration_from_str
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -30,13 +31,20 @@ def show() -> None:
     # save in case you built/reset it
     send_to_storage(daylist)
 
-    if not daylist.tasks:
-        print("Your todolist is empty!")
+    todo_tasks = daylist.pending_tasks()
+    done_tasks = daylist.done_tasks()
+
+    if not todo_tasks:
+        if done_tasks:
+            print("You've completed all the tasks in your list!")
+        else:
+            print("Your todolist is empty!")
         return
 
     now = dt.datetime.now()
-    display_tasks(daylist.tasks, now)
+    display_tasks(todo_tasks, now)
     print(f"Total Time to Finish: {daylist.total_estimate()}\n")
+    print(f"{len(done_tasks)} Tasks Already Completed\n")
 
     print(f"Current Time:\t\t{now.strftime(PRETTY_DATE_FORMAT)}")
     endtime = now + daylist.total_estimate()
@@ -44,29 +52,23 @@ def show() -> None:
 
 
 @app.command()
-def add(name: str, minutes: int) -> None:
+def add(name: str, estimate: str) -> None:
     """
-    Add a new task to your todolist, including the expected task estimate in minutes.
+    Add a new task to your todolist, including the expected task estimate.
+    The estimate can be provided as a string (in format "1h30m"), or as a number of minutes (e.g. 90).
     """
     daylist = build_from_storage()
+    try:
+        minutes = int(estimate)
+        delta = dt.timedelta(minutes=minutes)
+    except ValueError:
+        delta = duration_from_str(dur_str=estimate)
 
-    task = make_task(name=name, estimate=dt.timedelta(minutes=minutes))
-
+    task = Task(name=name, estimate=delta)
     daylist.add_task(task)
     send_to_storage(daylist)
 
     print("Added new task to your list!")
-
-
-# @app.command()
-# def add_string(task_text: str) -> None:
-#     daylist = build_from_storage()
-
-#     task = make_task_from_string(task_text)
-#     daylist.add_task(task)
-
-#     send_to_storage(daylist)
-#     print(f"Added new task to your list!")
 
 
 @app.command()
@@ -77,13 +79,30 @@ def delete(task_number: int) -> None:
     daylist = build_from_storage()
     task_index = task_number - 1
 
-    if task_index not in range(len(daylist.tasks)):
-        raise ValueError(f"Can't find requested task; action canceled.")
+    try:
+        daylist.remove_task(task_index)
+    except (IndexError, ValueError):
+        raise ValueError(f"Couldn't find task #{task_number}!")
 
-    daylist.remove_task(task_index)
     send_to_storage(daylist)
-
     print(f"Removed task #{task_number} from your list!")
+
+
+@app.command()
+def complete(task_number: Annotated[int, typer.Argument()] = 1) -> None:
+    """
+    Mark a task in the todolist as done/completed. Defaults to completing the first task.
+    """
+    daylist = build_from_storage()
+    task_index = task_number - 1
+
+    try:
+        daylist.complete_task(task_index)
+    except (IndexError, ValueError):
+        raise ValueError(f"Couldn't find task #{task_number}!")
+
+    send_to_storage(daylist)
+    print(f"Another task completed!")
 
 
 # Helpers
@@ -122,25 +141,6 @@ def reset_daylist() -> Daylist:
     """
     print("Building new list for today!")
     return Daylist()
-
-
-# TODO: fix parsing time estimate on CLI (no tab character)
-# def make_task_from_string(task_string: str) -> Task:
-#     """
-#     Parse a string to find the right details, build a new Task from it.
-#     """
-#     split_task = utils.parse_out_estimate(task_string)
-#     return Task(
-#         name=split_task["str"],
-#         estimate=utils.duration_from_str(split_task["dur"]),
-#     )
-
-
-def make_task(name: str, estimate: dt.timedelta) -> Task:
-    """
-    Build a new Task from provided details.
-    """
-    return Task(name=name, estimate=estimate)
 
 
 def display_tasks(task_list: list[Task], start_time: dt.datetime) -> None:

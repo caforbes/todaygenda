@@ -12,8 +12,14 @@ def get_storage_json() -> dict:
     return content
 
 
-def clear_storage() -> None:
+@pytest.fixture()
+def storage():
     assert "test" in cli.daylist_file
+    if os.path.exists(cli.daylist_file):
+        os.remove(cli.daylist_file)
+
+    yield
+
     if os.path.exists(cli.daylist_file):
         os.remove(cli.daylist_file)
 
@@ -21,7 +27,7 @@ def clear_storage() -> None:
 # Show
 
 
-def test_show_typical_userflow(capsys):
+def test_show_typical_userflow(storage, capsys):
     cli.build_from_storage()
 
     cli.add("test task", 55)
@@ -33,38 +39,31 @@ def test_show_typical_userflow(capsys):
     storage = get_storage_json()
     assert os.path.exists(cli.daylist_file)
     assert len(storage["tasks"]) == 1
-    clear_storage()
 
 
-def test_show_builds_list(capsys):
-    clear_storage()
-
+def test_show_builds_list(storage, capsys):
     cli.show()
 
     captured = capsys.readouterr()
     assert "new list" in captured.out.lower()
 
     assert os.path.exists(cli.daylist_file)
-    clear_storage()
 
 
 # Add
 
 
-def test_add_without_list():
-    clear_storage()
+def test_add_without_list(storage):
     cli.add("task added to non-list", 15)
 
     storage = get_storage_json()
 
     assert "tasks" in storage
     assert len(storage["tasks"]) == 1
-    clear_storage()
 
 
-def test_add():
+def test_add(storage):
     # typical flow
-    cli.build_from_storage()
     cli.add("task 1", 11)
     cli.add("task 2", 22)
 
@@ -85,26 +84,34 @@ def test_add():
         with pytest.raises(ValueError):
             cli.add("task is okay", bad_minutes)
 
-    clear_storage()
+
+# Complete
+
+
+def test_complete(storage):
+    # typical flow
+    cli.add("task 1", 11)
+    cli.add("task 2", 22)
+    cli.add("task 3", 33)
+
+    cli.complete(3)
+    cli.complete(1)
+
+    storage = get_storage_json()
+
+    assert "tasks" in storage
+    assert len(storage["tasks"]) == 3
+
+    # check bad userinput
+    with pytest.raises(ValueError):
+        cli.complete(200)
 
 
 # Delete
 
 
-def test_delete_without_list():
-    clear_storage()
-
-    with pytest.raises(ValueError):
-        cli.delete(1)
-
-    clear_storage()
-
-
-def test_delete():
-    cli.build_from_storage()
-
+def test_delete(storage, capsys):
     # typical flow
-    cli.build_from_storage()
     cli.add("task 1", 11)
     cli.add("task 2", 22)
     cli.delete(2)
@@ -114,10 +121,6 @@ def test_delete():
     assert "tasks" in storage
     assert len(storage["tasks"]) == 1
 
-    # bad userinput
-    bad_numbers = [0, -1]
-    for bad_num in bad_numbers:
-        with pytest.raises(ValueError):
-            cli.delete(bad_num)
-
-    clear_storage()
+    # check bad userinput
+    with pytest.raises(ValueError):
+        cli.delete(300)

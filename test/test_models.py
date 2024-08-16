@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytest
 
-from src.models import Daylist, Task
+from src.models import Daylist, Task, TaskStatus
 
 
 class TestTaskModel:
@@ -27,6 +27,14 @@ class TestTaskModel:
         with pytest.raises(ValueError):
             Task(name=bad_name, estimate=100)
 
+    def test_mark_done(self):
+        """Mark task as done and update its metadata"""
+        task = Task(name="teststset", estimate=100)
+        assert task.status == TaskStatus.PENDING
+        task.mark_done()
+        assert task.status == TaskStatus.DONE
+        assert task.created != task.updated
+
 
 class TestDaylistModel:
     now = datetime.today()
@@ -46,6 +54,17 @@ class TestDaylistModel:
         tasks = self.setup_tasks(durs=task_times)
         test_list = Daylist(tasks=tasks)
 
+        # Assert tasks times are summed into the estimate
+        assert test_list.total_estimate().total_seconds() == sum(task_times)
+
+    def test_total_estimate_with_done(self):
+        task_times = [10, 120]
+        tasks = self.setup_tasks(durs=task_times)
+        test_list = Daylist(tasks=tasks)
+
+        # Expect done tasks do not contribute to total estimate
+        tasks[0].mark_done()
+        task_times.pop(0)
         assert test_list.total_estimate().total_seconds() == sum(task_times)
 
     @pytest.mark.parametrize(
@@ -78,19 +97,47 @@ class TestDaylistModel:
         test_list.add_task(task)
         assert len(test_list.tasks) == 1
 
+    def test_list_tasks(self):
+        tasks = self.setup_tasks()
+        test_list = Daylist(tasks=tasks)
+
+        tasks[0].mark_done()
+        assert len(test_list.done_tasks()) == 1
+        assert len(test_list.pending_tasks()) == len(tasks) - 1
+
     def test_remove_task(self):
         tasks = self.setup_tasks()
         test_list = Daylist(tasks=tasks)
 
         assert len(test_list.tasks) == len(tasks)
-        test_list.remove_task(0)
+        test_list.remove_task(1)
         assert len(test_list.tasks) == (len(tasks) - 1)
-        test_list.remove_task(-1)
+        test_list.remove_task(0)
         assert len(test_list.tasks) == (len(tasks) - 2)
 
-    def test_remove_task_bad_index(self):
-        test_list = Daylist()
+    @pytest.mark.parametrize(
+        "bad_index, exception", [(10, IndexError), (-1, ValueError)]
+    )
+    def test_remove_task_bad_index(self, bad_index, exception):
+        test_list = Daylist(tasks=self.setup_tasks())
 
-        assert len(test_list.tasks) == 0
-        with pytest.raises(IndexError):
-            test_list.remove_task(2)
+        with pytest.raises(exception):
+            test_list.remove_task(bad_index)
+
+    def test_complete_task(self):
+        tasks = self.setup_tasks()
+        test_list = Daylist(tasks=tasks)
+
+        assert len(test_list.pending_tasks()) == len(tasks)
+        test_list.complete_task(1)
+        assert len(test_list.pending_tasks()) == (len(tasks) - 1)
+        test_list.complete_task(0)
+        assert len(test_list.pending_tasks()) == (len(tasks) - 2)
+
+    @pytest.mark.parametrize(
+        "bad_index, exception", [(10, IndexError), (-1, ValueError)]
+    )
+    def test_complete_task_bad_index(self, bad_index, exception):
+        test_list = Daylist(tasks=self.setup_tasks())
+        with pytest.raises(exception):
+            test_list.complete_task(bad_index)
