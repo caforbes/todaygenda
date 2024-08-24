@@ -3,7 +3,7 @@ from enum import StrEnum, auto
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing_extensions import Annotated
 
-from src import utils
+from cli import utils
 
 
 class BaseModelWithMetadata(BaseModel):

@@ -2,7 +2,7 @@ import json
 import os
 import pytest
 
-import cli
+import cli.app as app
 from db.local import LOCAL_FILE
 
 
@@ -29,10 +29,10 @@ def storage():
 
 
 def test_show_typical_userflow(storage, capsys):
-    cli.build_from_storage()
+    app.build_from_storage()
 
-    cli.add("test task", 55)
-    cli.show()
+    app.add("test task", 55)
+    app.show()
 
     captured = capsys.readouterr()
     assert "estimate" in captured.out.lower()
@@ -43,7 +43,7 @@ def test_show_typical_userflow(storage, capsys):
 
 
 def test_show_builds_list(storage, capsys):
-    cli.show()
+    app.show()
 
     captured = capsys.readouterr()
     assert "new list" in captured.out.lower()
@@ -55,7 +55,7 @@ def test_show_builds_list(storage, capsys):
 
 
 def test_add_without_list(storage):
-    cli.add("task added to non-list", 15)
+    app.add("task added to non-list", 15)
 
     storage = get_storage_json()
 
@@ -65,8 +65,8 @@ def test_add_without_list(storage):
 
 def test_add(storage):
     # typical flow
-    cli.add("task 1", 11)
-    cli.add("task 2", 22)
+    app.add("task 1", 11)
+    app.add("task 2", 22)
 
     storage = get_storage_json()
 
@@ -77,13 +77,13 @@ def test_add(storage):
     bad_names = ["", "a" * 250]
     for bad_name in bad_names:
         with pytest.raises(ValueError):
-            cli.add(bad_name, 100)
+            app.add(bad_name, 100)
 
     bad_minutes = [-1, 0, 100000]
 
     for bad_minutes in bad_minutes:
         with pytest.raises(ValueError):
-            cli.add("task is okay", bad_minutes)
+            app.add("task is okay", bad_minutes)
 
 
 # Complete
@@ -91,12 +91,12 @@ def test_add(storage):
 
 def test_complete(storage):
     # typical flow
-    cli.add("task 1", 11)
-    cli.add("task 2", 22)
-    cli.add("task 3", 33)
+    app.add("task 1", 11)
+    app.add("task 2", 22)
+    app.add("task 3", 33)
 
-    cli.complete(3)
-    cli.complete(1)
+    app.complete(3)
+    app.complete(1)
 
     storage = get_storage_json()
 
@@ -105,7 +105,7 @@ def test_complete(storage):
 
     # check bad userinput
     with pytest.raises(ValueError):
-        cli.complete(200)
+        app.complete(200)
 
 
 # Delete
@@ -113,9 +113,9 @@ def test_complete(storage):
 
 def test_delete(storage, capsys):
     # typical flow
-    cli.add("task 1", 11)
-    cli.add("task 2", 22)
-    cli.delete(2)
+    app.add("task 1", 11)
+    app.add("task 2", 22)
+    app.delete(2)
 
     storage = get_storage_json()
 
@@ -124,4 +124,4 @@ def test_delete(storage, capsys):
 
     # check bad userinput
     with pytest.raises(ValueError):
-        cli.delete(300)
+        app.delete(300)

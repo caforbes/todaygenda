@@ -5,7 +5,7 @@ import os
 from fastapi import FastAPI
 
 from db.local import LOCAL_FILE
-from src.models import Daylist, TodayView
+from cli.models import Daylist, TodayView
 
 app = FastAPI()
 

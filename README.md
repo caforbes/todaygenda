@@ -4,33 +4,46 @@ This app allows you to create an agenda based on what you would like to accompli
 
 ## Use the CLI todo list
 
-1. Set an environment variable `DAYLIST_FILE` for where your task list will be stored in JSON format. This can be stored in `.env`.
-
-    ```sh
-    export DAYLIST_FILE="local.json"
-    ```
-
-2. If needed, open the program environment with `pipenv shell`. Or, prefix all the following commands with `pipenv run`.
+1. First, set up the package environment.
+    1. You'll need a working installation of Python 3.12
+    2. Setup CLI dependencies by installing Pipenv and installing packages.
+    <!-- FIX: add details to these steps -->
+2. Open the program environment with `pipenv shell`. Or, prefix all the following commands with `pipenv run`.
 3. View the program documentation and available commands:
 
     ```sh
-    python -m cli --help
+    python -m cli.app --help
     ```
 
-4. Add tasks to your todolist, with time estimates in minutes:
+4. Try out the program commands:
+
+    1. Add tasks to your todolist, with time estimates in minutes:
+
+        ```sh
+        python -m cli.app add "task I have to do" 15
+        ```
+
+    2. View your entire todolist and estimated finish time:
+
+        ```sh
+        python -m cli.app show
+        ```
+
+    3. Complete a task you've finished by providing its number.
+
+        ```sh
+        python -m cli.app complete 3
+        ```
+
+5. **Optional:** Make a command line alias to speed up your typing experience.
 
     ```sh
-    python -m cli add "task I have to do" 15
+    alias today='pipenv run python -m cli.app'
     ```
 
-5. View your entire todolist and estimated finish time:
+    Now you can run commands more quickly.
 
     ```sh
-    python -m cli show
-    ```
-
-6. Complete a task you've finished by providing its number.
-
-    ```sh
-    python -m cli complete 3
+    today add "get groceries" 45m
+    today show
     ```

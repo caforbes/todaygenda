@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytest
 
-from src.models import Daylist, Task, TaskStatus
+from cli.models import Daylist, Task, TaskStatus
 
 
 class TestTaskModel:

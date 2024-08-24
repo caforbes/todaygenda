@@ -1,7 +1,7 @@
 from datetime import timedelta
 import pytest
 
-import src.utils as main
+import cli.utils as main
 
 
 @pytest.mark.parametrize(

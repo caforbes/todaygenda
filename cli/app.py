@@ -8,8 +8,8 @@ import typer
 from typing_extensions import Annotated
 
 from db.local import LOCAL_FILE
-from src.models import Daylist, Task
-from src.utils import PRETTY_DATE_FORMAT, duration_from_str
+from cli.models import Daylist, Task
+from cli.utils import PRETTY_DATE_FORMAT, duration_from_str
 
 
 # Setup
