@@ -7,7 +7,7 @@ This app allows you to create an agenda based on what you would like to accompli
 1. Set an environment variable `DAYLIST_FILE` for where your task list will be stored in JSON format. This can be stored in `.env`.
 
     ```sh
-    export DAYLIST_FILE="daylist.json"
+    export DAYLIST_FILE="local.json"
     ```
 
 2. If needed, open the program environment with `pipenv shell`. Or, prefix all the following commands with `pipenv run`.
@@ -27,4 +27,10 @@ This app allows you to create an agenda based on what you would like to accompli
 
     ```sh
     python -m cli show
+    ```
+
+6. Complete a task you've finished by providing its number.
+
+    ```sh
+    python -m cli complete 3
     ```

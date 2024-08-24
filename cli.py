@@ -11,12 +11,16 @@ from typing_extensions import Annotated
 from src.models import Daylist, Task
 from src.utils import PRETTY_DATE_FORMAT, duration_from_str
 
-app = typer.Typer(no_args_is_help=True)
+
+# Setup
 
 load_dotenv()
-storage = os.getenv("DAYLIST_FILE")
+
+app = typer.Typer(no_args_is_help=True)
+
 this_dir = os.path.abspath(os.path.dirname(__file__))
-daylist_file = os.path.join(this_dir, storage)
+storage = os.path.join(this_dir, "db")
+daylist_file = os.path.join(storage, os.getenv("DAYLIST_FILE"))
 
 
 # Commands
@@ -163,4 +167,8 @@ def display_tasks(task_list: list[Task], start_time: dt.datetime) -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+
+    if not os.path.exists():
+        os.mkdir(storage)
+
     app()
