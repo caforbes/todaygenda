@@ -117,3 +117,8 @@ class Daylist(BaseModelWithMetadata):
         target = self.get_pending_task_at(index)
         target.mark_done()  # just drop task for now
         target.mark_updated()
+
+
+class TodayView(BaseModel):
+    today: Daylist
+    time_to_finish: timedelta
