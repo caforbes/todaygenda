@@ -1,5 +1,4 @@
 import datetime as dt
-from dotenv import load_dotenv
 import json
 import logging
 import os
@@ -8,19 +7,14 @@ from rich.table import Table
 import typer
 from typing_extensions import Annotated
 
+from db.local import LOCAL_FILE
 from src.models import Daylist, Task
 from src.utils import PRETTY_DATE_FORMAT, duration_from_str
 
 
 # Setup
 
-load_dotenv()
-
 app = typer.Typer(no_args_is_help=True)
-
-this_dir = os.path.abspath(os.path.dirname(__file__))
-storage = os.path.join(this_dir, "db")
-daylist_file = os.path.join(storage, os.getenv("DAYLIST_FILE"))
 
 
 # Commands
@@ -117,10 +111,10 @@ def build_from_storage() -> Daylist:
     Check storage for the current daylist.
     If it exists, return it, otherwise create a new one.
     """
-    if not os.path.exists(daylist_file):
+    if not os.path.exists(LOCAL_FILE):
         daylist = reset_daylist()
     else:
-        with open(daylist_file) as f:
+        with open(LOCAL_FILE) as f:
             daylist = json.load(f)
         daylist = Daylist.model_validate(daylist)
 
@@ -135,7 +129,7 @@ def send_to_storage(daylist: Daylist) -> None:
     """
     Save the current daylist to storage.
     """
-    with open(daylist_file, "w") as writer:
+    with open(LOCAL_FILE, "w") as writer:
         json.dump(daylist.model_dump(mode="json"), writer, ensure_ascii=False)
 
 
@@ -167,8 +161,4 @@ def display_tasks(task_list: list[Task], start_time: dt.datetime) -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
-    if not os.path.exists():
-        os.mkdir(storage)
-
     app()

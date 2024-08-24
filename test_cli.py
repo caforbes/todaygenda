@@ -3,25 +3,26 @@ import os
 import pytest
 
 import cli
+from db.local import LOCAL_FILE
 
 
 def get_storage_json() -> dict:
-    assert "test" in cli.daylist_file
-    with open(cli.daylist_file) as f:
+    assert "test" in LOCAL_FILE
+    with open(LOCAL_FILE) as f:
         content = json.load(f)
     return content
 
 
 @pytest.fixture()
 def storage():
-    assert "test" in cli.daylist_file
-    if os.path.exists(cli.daylist_file):
-        os.remove(cli.daylist_file)
+    assert "test" in LOCAL_FILE
+    if os.path.exists(LOCAL_FILE):
+        os.remove(LOCAL_FILE)
 
     yield
 
-    if os.path.exists(cli.daylist_file):
-        os.remove(cli.daylist_file)
+    if os.path.exists(LOCAL_FILE):
+        os.remove(LOCAL_FILE)
 
 
 # Show
@@ -37,7 +38,7 @@ def test_show_typical_userflow(storage, capsys):
     assert "estimate" in captured.out.lower()
 
     storage = get_storage_json()
-    assert os.path.exists(cli.daylist_file)
+    assert os.path.exists(LOCAL_FILE)
     assert len(storage["tasks"]) == 1
 
 
@@ -47,7 +48,7 @@ def test_show_builds_list(storage, capsys):
     captured = capsys.readouterr()
     assert "new list" in captured.out.lower()
 
-    assert os.path.exists(cli.daylist_file)
+    assert os.path.exists(LOCAL_FILE)
 
 
 # Add
