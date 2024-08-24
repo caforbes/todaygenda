@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
-from enum import StrEnum, auto
-from pydantic import BaseModel, Field, StringConstraints, field_validator
-from typing_extensions import Annotated
+from pydantic import BaseModel, Field
 
 from cli import utils
+from src.models import Daylist, Task, TaskStatus
 
 
-class BaseModelWithMetadata(BaseModel):
+class BaseHasMetadata(BaseModel):
     created: datetime = Field(default_factory=datetime.now)
     updated: datetime = Field(default_factory=datetime.now)
 
@@ -14,37 +13,7 @@ class BaseModelWithMetadata(BaseModel):
         self.updated = datetime.now()
 
 
-class TaskStatus(StrEnum):
-    ACTIVE = auto()
-    PENDING = auto()
-    DONE = auto()
-
-
-class Task(BaseModelWithMetadata):
-    name: Annotated[str, StringConstraints(min_length=1, max_length=200)]
-    estimate: timedelta
-    status: TaskStatus = TaskStatus.PENDING
-
-    @field_validator("estimate")
-    @classmethod
-    def estimate_under_24h(cls, dur: timedelta) -> timedelta:
-        """
-        Ensure time estimates can't exceed 1 day / 24h.
-        """
-        if dur.days > 0:
-            raise ValueError("Task time estimates must be less than 24 hours")
-        return dur
-
-    @field_validator("estimate")
-    @classmethod
-    def estimate_minimum(cls, dur: timedelta) -> timedelta:
-        """
-        Ensure task estimates are above zero.
-        """
-        if dur.total_seconds() <= 0:
-            raise ValueError("Task must have a provided time estimate.")
-        return dur
-
+class TaskCLI(BaseHasMetadata, Task):
     def estimatestr(self) -> str:
         """
         Task estimate as a string in format 1m / 2h / 1h20m
@@ -59,8 +28,8 @@ class Task(BaseModelWithMetadata):
         self.mark_updated()
 
 
-class Daylist(BaseModelWithMetadata):
-    tasks: list[Task] = []
+class DaylistCLI(BaseHasMetadata, Daylist):
+    tasks: list[TaskCLI] = []
 
     def total_estimate(self) -> timedelta:
         """
@@ -75,30 +44,28 @@ class Daylist(BaseModelWithMetadata):
         """
         return self.created.date() == datetime.now().date()
 
-    def done_tasks(self) -> list[Task]:
+    def done_tasks(self) -> list[TaskCLI]:
         """
         Get tasks with status DONE, already complete.
         """
         return [task for task in self.tasks if task.status == TaskStatus.DONE]
 
-    def pending_tasks(self) -> list[Task]:
+    def pending_tasks(self) -> list[TaskCLI]:
         """
         Get tasks with status PENDING, yet to be completed.
         """
         return [task for task in self.tasks if task.status == TaskStatus.PENDING]
 
-    def get_pending_task_at(self, index: int) -> Task:
+    def get_pending_task_at(self, index: int) -> TaskCLI:
         if index < 0:
             raise ValueError("Must provide the exact index.")
         return self.pending_tasks()[index]
 
-    def add_task(self, task: Task):
+    def add_task(self, name=str, estimate=timedelta):
         """
         Add a task to this list.
         """
-        if task in self.tasks:
-            return
-
+        task = TaskCLI(name=name, estimate=estimate)
         self.tasks.append(task)
         self.mark_updated()
 
@@ -117,8 +84,3 @@ class Daylist(BaseModelWithMetadata):
         target = self.get_pending_task_at(index)
         target.mark_done()  # just drop task for now
         target.mark_updated()
-
-
-class TodayView(BaseModel):
-    today: Daylist
-    time_to_finish: timedelta

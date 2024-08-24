@@ -6,40 +6,42 @@ import cli.app as app
 from db.local import LOCAL_FILE
 
 
-def get_storage_json() -> dict:
-    assert "test" in LOCAL_FILE
-    with open(LOCAL_FILE) as f:
-        content = json.load(f)
-    return content
-
-
 @pytest.fixture()
 def storage():
     assert "test" in LOCAL_FILE
     if os.path.exists(LOCAL_FILE):
         os.remove(LOCAL_FILE)
 
-    yield
+    yield LOCAL_FILE
 
     if os.path.exists(LOCAL_FILE):
         os.remove(LOCAL_FILE)
 
 
+def get_json_content(json_path) -> dict:
+    assert "test" in LOCAL_FILE
+    assert os.path.exists(LOCAL_FILE)
+    with open(json_path) as f:
+        content = json.load(f)
+    return content
+
+
 # Show
 
 
-def test_show_typical_userflow(storage, capsys):
-    app.build_from_storage()
-
+def test_typical_userflow(storage, capsys):
     app.add("test task", 55)
+
+    # storage location is created and updated
+    assert os.path.exists(storage)
+    storage_content = get_json_content(storage)
+    assert len(storage_content["tasks"]) == 1
+
     app.show()
-
     captured = capsys.readouterr()
-    assert "estimate" in captured.out.lower()
 
-    storage = get_storage_json()
-    assert os.path.exists(LOCAL_FILE)
-    assert len(storage["tasks"]) == 1
+    # command displays and storage contents are updated
+    assert "estimate" in captured.out.lower()
 
 
 def test_show_builds_list(storage, capsys):
@@ -48,7 +50,7 @@ def test_show_builds_list(storage, capsys):
     captured = capsys.readouterr()
     assert "new list" in captured.out.lower()
 
-    assert os.path.exists(LOCAL_FILE)
+    assert os.path.exists(storage)
 
 
 # Add
@@ -57,10 +59,10 @@ def test_show_builds_list(storage, capsys):
 def test_add_without_list(storage):
     app.add("task added to non-list", 15)
 
-    storage = get_storage_json()
+    storage_content = get_json_content(storage)
 
-    assert "tasks" in storage
-    assert len(storage["tasks"]) == 1
+    assert "tasks" in storage_content
+    assert len(storage_content["tasks"]) == 1
 
 
 def test_add(storage):
@@ -68,10 +70,10 @@ def test_add(storage):
     app.add("task 1", 11)
     app.add("task 2", 22)
 
-    storage = get_storage_json()
+    storage_content = get_json_content(storage)
 
-    assert "tasks" in storage
-    assert len(storage["tasks"]) == 2
+    assert "tasks" in storage_content
+    assert len(storage_content["tasks"]) == 2
 
     # check bad userinput
     bad_names = ["", "a" * 250]
@@ -98,10 +100,10 @@ def test_complete(storage):
     app.complete(3)
     app.complete(1)
 
-    storage = get_storage_json()
+    storage_content = get_json_content(storage)
 
-    assert "tasks" in storage
-    assert len(storage["tasks"]) == 3
+    assert "tasks" in storage_content
+    assert len(storage_content["tasks"]) == 3
 
     # check bad userinput
     with pytest.raises(ValueError):
@@ -117,10 +119,10 @@ def test_delete(storage, capsys):
     app.add("task 2", 22)
     app.delete(2)
 
-    storage = get_storage_json()
+    storage_content = get_json_content(storage)
 
-    assert "tasks" in storage
-    assert len(storage["tasks"]) == 1
+    assert "tasks" in storage_content
+    assert len(storage_content["tasks"]) == 1
 
     # check bad userinput
     with pytest.raises(ValueError):

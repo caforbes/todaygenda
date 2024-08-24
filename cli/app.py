@@ -8,7 +8,7 @@ import typer
 from typing_extensions import Annotated
 
 from db.local import LOCAL_FILE
-from cli.models import Daylist, Task
+from cli.models import DaylistCLI, TaskCLI
 from cli.utils import PRETTY_DATE_FORMAT, duration_from_str
 
 
@@ -62,8 +62,7 @@ def add(name: str, estimate: str) -> None:
     except ValueError:
         delta = duration_from_str(dur_str=estimate)
 
-    task = Task(name=name, estimate=delta)
-    daylist.add_task(task)
+    daylist.add_task(name=name, estimate=delta)
     send_to_storage(daylist)
 
     print("Added new task to your list!")
@@ -106,7 +105,7 @@ def complete(task_number: Annotated[int, typer.Argument()] = 1) -> None:
 # Helpers
 
 
-def build_from_storage() -> Daylist:
+def build_from_storage() -> DaylistCLI:
     """
     Check storage for the current daylist.
     If it exists, return it, otherwise create a new one.
@@ -116,7 +115,7 @@ def build_from_storage() -> Daylist:
     else:
         with open(LOCAL_FILE) as f:
             daylist = json.load(f)
-        daylist = Daylist.model_validate(daylist)
+        daylist = DaylistCLI.model_validate(daylist)
 
         # if daylist is old, build a new one
         if not daylist.is_for_today():
@@ -125,7 +124,7 @@ def build_from_storage() -> Daylist:
     return daylist
 
 
-def send_to_storage(daylist: Daylist) -> None:
+def send_to_storage(daylist: DaylistCLI) -> None:
     """
     Save the current daylist to storage.
     """
@@ -133,15 +132,15 @@ def send_to_storage(daylist: Daylist) -> None:
         json.dump(daylist.model_dump(mode="json"), writer, ensure_ascii=False)
 
 
-def reset_daylist() -> Daylist:
+def reset_daylist() -> DaylistCLI:
     """
     Build a fresh daylist, with prompt as needed.
     """
     print("Building new list for today!")
-    return Daylist()
+    return DaylistCLI()
 
 
-def display_tasks(task_list: list[Task], start_time: dt.datetime) -> None:
+def display_tasks(task_list: list[TaskCLI], start_time: dt.datetime) -> None:
     """
     Print a pretty table of the current set of tasks.
     """
