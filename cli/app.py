@@ -47,7 +47,7 @@ def show() -> None:
 
 
 @app.command()
-def add(name: str, estimate: str) -> None:
+def add(title: str, estimate: str) -> None:
     """
     Add a new task to your todolist, including the expected task estimate.
     The estimate can be provided as a string (in format "1h30m"), or as a number of minutes (e.g. 90).
@@ -59,7 +59,7 @@ def add(name: str, estimate: str) -> None:
     except ValueError:
         delta = duration_from_str(dur_str=estimate)
 
-    daylist.add_task(name=name, estimate=delta)
+    daylist.add_task(title=title, estimate=delta)
     send_to_storage(daylist)
 
     print("Added new task to your list!")
@@ -148,7 +148,7 @@ def display_tasks(task_list: list[TaskCLI], start_time: dt.datetime) -> None:
         temp_index = idx + 1
         table.add_row(
             str(temp_index),
-            task.name,
+            task.title,
             task.estimatestr(),
             start_time.strftime(PRETTY_DATE_FORMAT),
         )

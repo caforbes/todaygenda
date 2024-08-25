@@ -85,10 +85,10 @@ def test_add(storage):
     assert len(storage_content["done_tasks"]) == 0
 
     # check bad userinput
-    bad_names = ["", "a" * 250]
-    for bad_name in bad_names:
+    bad_titles = ["", "a" * 250]
+    for bad_title in bad_titles:
         with pytest.raises(ValueError):
-            app.add(bad_name, 100)
+            app.add(bad_title, 100)
 
     bad_minutes = [-1, 0, 100000]
 

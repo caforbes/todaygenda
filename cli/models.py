@@ -37,11 +37,12 @@ class DaylistCLI(BaseHasMetadata, Daylist):
             raise ValueError("Non-done task found in list")
 
         self.pending_tasks = [
-            TaskCLI(name=task.name, estimate=task.estimate)
+            TaskCLI(title=task.title, estimate=task.estimate)
             for task in self.pending_tasks
         ]
         self.done_tasks = [
-            TaskCLI(name=task.name, estimate=task.estimate) for task in self.done_tasks
+            TaskCLI(title=task.title, estimate=task.estimate)
+            for task in self.done_tasks
         ]
         return self
 
@@ -63,11 +64,11 @@ class DaylistCLI(BaseHasMetadata, Daylist):
             raise IndexError("Must provide the exact index.")
         return self.pending_tasks[index]
 
-    def add_task(self, name=str, estimate=timedelta):
+    def add_task(self, title=str, estimate=timedelta):
         """
         Add a task to this list.
         """
-        task = TaskCLI(name=name, estimate=estimate)
+        task = TaskCLI(title=title, estimate=estimate)
         self.pending_tasks.append(task)
         self.mark_updated()
 

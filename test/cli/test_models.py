@@ -8,7 +8,7 @@ from cli.models import TaskCLI, DaylistCLI
 class TestTaskObject:
     def test_mark_done(self):
         """Mark task as done and update its metadata"""
-        task = TaskCLI(name="teststset", estimate=100)
+        task = TaskCLI(title="teststset", estimate=100)
         assert task.status == TaskStatus.PENDING
         task.mark_done()
         assert task.status == TaskStatus.DONE
@@ -17,12 +17,12 @@ class TestTaskObject:
 
 class TestDaylistObject:
     @staticmethod
-    def setup_tasks(names=["task 1", "task 2"], durs=[60, 120]) -> list[TaskCLI]:
-        if len(names) != len(durs):
-            raise ValueError("Number of provided names and estimates don't match")
+    def setup_tasks(titles=["task 1", "task 2"], durs=[60, 120]) -> list[TaskCLI]:
+        if len(titles) != len(durs):
+            raise ValueError("Number of provided titles and estimates don't match")
         tasks = []
-        for name, dur in zip(names, durs):
-            tasks.append(TaskCLI(name=name, estimate=dur))
+        for title, dur in zip(titles, durs):
+            tasks.append(TaskCLI(title=title, estimate=dur))
 
         return tasks
 
@@ -60,11 +60,11 @@ class TestDaylistObject:
         test_list = DaylistCLI()
         assert len(test_list.pending_tasks) == 0
 
-        test_name = "hello"
+        test_title = "hello"
         test_delta = timedelta(minutes=30)
-        test_list.add_task(name=test_name, estimate=test_delta)
+        test_list.add_task(title=test_title, estimate=test_delta)
         assert len(test_list.pending_tasks) == 1
-        assert test_list.pending_tasks[0].name == test_name
+        assert test_list.pending_tasks[0].title == test_title
 
     def test_remove_task(self):
         tasks = self.setup_tasks()
