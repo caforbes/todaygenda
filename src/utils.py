@@ -1,18 +1,34 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import reduce
-from math import ceil
-import re
 import logging
+import math
+import re
+
+
+# Time helpers
 
 
 SECONDS_IN_MIN = 60
 MINS_IN_HR = 60
 SECONDS_IN_HR = SECONDS_IN_MIN * MINS_IN_HR
 
+
+def deltasum(deltas: list[timedelta]) -> timedelta:
+    return reduce(lambda t1, t2: t1 + t2, deltas, timedelta())
+
+
+def next_midnight() -> datetime:
+    midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return midnight + timedelta(days=1)
+
+
+# String helpers
+
+
 PRETTY_DATE_FORMAT = "%a %I:%M %p"
 
 
-def parse_out_duration(raw_str: str) -> dict:
+def parse_out_duration(raw_str: str) -> dict[str, str]:
     split_str = [s.strip() for s in raw_str.split("\t", 1)]
     if len(split_str) == 1:
         # duration not found
@@ -38,8 +54,8 @@ def duration_from_str(dur_str: str) -> timedelta:
 
     # round up to nearest whole minute
     if delta:
-        seconds = ceil(delta.total_seconds())  # round up
-        next_whole_minute = ceil(seconds / SECONDS_IN_MIN)
+        seconds = math.ceil(delta.total_seconds())  # round up
+        next_whole_minute = math.ceil(seconds / SECONDS_IN_MIN)
         delta = timedelta(minutes=next_whole_minute)
 
     return delta
@@ -59,7 +75,3 @@ def duration_to_str(delta: timedelta) -> str:
         return f"{minutes}m"
     else:
         return ""
-
-
-def deltasum(deltas: list[timedelta]) -> timedelta:
-    return reduce(lambda t1, t2: t1 + t2, deltas, timedelta())

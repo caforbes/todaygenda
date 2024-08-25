@@ -1,7 +1,28 @@
 from datetime import timedelta
 import pytest
 
-import src.utils as main
+import src.utils as utils
+
+
+def test_next_midnight():
+    result = utils.next_midnight()
+    assert result.hour == 0
+    assert result.minute == 0
+    assert result.second == 0
+
+
+@pytest.mark.parametrize(
+    "list_of_seconds,total_seconds",
+    [
+        ([], 0),
+        ([0, 0, 0], 0),
+        ([1], 1),
+        ([1, 2, 3], 6),
+    ],
+)
+def test_deltasum(list_of_seconds, total_seconds):
+    list_of_deltas = [timedelta(seconds=sec) for sec in list_of_seconds]
+    assert utils.deltasum(list_of_deltas) == timedelta(seconds=total_seconds)
 
 
 @pytest.mark.parametrize(
@@ -18,7 +39,7 @@ import src.utils as main
     ],
 )
 def test_parse_duration_str(raw, expected_str, expected_dur):
-    result = main.parse_out_duration(raw)
+    result = utils.parse_out_duration(raw)
     assert result["str"] == expected_str
     assert result["dur"] == expected_dur
 
@@ -41,7 +62,7 @@ def test_parse_duration_str(raw, expected_str, expected_dur):
     ],
 )
 def test_duration_from_str(raw, expected_m):
-    result = main.duration_from_str(raw)
+    result = utils.duration_from_str(raw)
     assert isinstance(result, timedelta)
     assert result == timedelta(minutes=expected_m)
 
@@ -51,7 +72,7 @@ def test_duration_from_str(raw, expected_m):
     ["0m", "0h", "0h0m", "", "1.5.1.5h", "h"],
 )
 def test_duration_from_str_none(raw):
-    result = main.duration_from_str(raw)
+    result = utils.duration_from_str(raw)
     assert isinstance(result, timedelta)
     assert result == timedelta()
 
@@ -70,20 +91,6 @@ def test_duration_from_str_none(raw):
     ],
 )
 def test_duration_to_str(seconds, expected_label):
-    result = main.duration_to_str(timedelta(seconds=seconds))
+    result = utils.duration_to_str(timedelta(seconds=seconds))
     assert isinstance(result, str)
     assert result == expected_label
-
-
-@pytest.mark.parametrize(
-    "list_of_seconds,total_seconds",
-    [
-        ([], 0),
-        ([0, 0, 0], 0),
-        ([1], 1),
-        ([1, 2, 3], 6),
-    ],
-)
-def test_deltasum(list_of_seconds, total_seconds):
-    list_of_deltas = [timedelta(seconds=sec) for sec in list_of_seconds]
-    assert main.deltasum(list_of_deltas) == timedelta(seconds=total_seconds)

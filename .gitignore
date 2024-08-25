@@ -2,7 +2,9 @@ __pycache__*
 .vscode/*
 
 .pytest_cache/
+.mypy_cache/
 .coverage
 htmlcov/
 
 *.env
+db/local.json

@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+fastapi = {extras = ["standard"], version = "*"}
 pydantic = "*"
 python-dotenv = "*"
 rich = "*"
@@ -12,6 +13,9 @@ typer = "*"
 [dev-packages]
 black = "*"
 flake8 = "*"
+flake8-bugbear = "*"
+httpx = "*"
+mypy = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-env = "*"
