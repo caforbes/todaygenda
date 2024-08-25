@@ -27,13 +27,21 @@ def temp_get_daylist() -> Daylist:
 
 @app.get("/")
 def read_today() -> Daylist:
-    """Read the current list of things to do today."""
+    """Read the current list of things to do today.
+
+    Contains a list of pending tasks and done tasks.
+    This list expires within a 24-hour window of creation.
+    """
     return temp_get_daylist()
 
 
 @app.get("/agenda")
 def read_agenda() -> Agenda:
-    """Read a timeline of what to do next."""
+    """Read a timeline of what to do next.
+
+    Contains a timeline and indicates the overall finish time.
+    Includes warnings for if the timeline exceeds the daily list expiry time.
+    """
     daylist = temp_get_daylist()
     agenda = build_agenda(daylist)
     return agenda
