@@ -1,8 +1,10 @@
 import json
 import os
 import pytest
+import datetime as dt
 
 import cli.app as app
+from cli.models import DaylistCLI
 from db.local import LOCAL_FILE
 
 
@@ -42,6 +44,22 @@ def test_typical_userflow(storage, capsys):
 
     # command displays and storage contents are updated
     assert "estimate" in captured.out.lower()
+
+
+def test_list_expiry(storage, capsys):
+    past_expiry = dt.datetime.now() - dt.timedelta(days=10)
+    daylist = DaylistCLI(expiry=past_expiry)
+    app.send_to_storage(daylist)
+
+    # storage location exists with old expired list
+    assert os.path.exists(storage)
+
+    # new list is created after new command, with different expiry
+    app.show()
+    captured = capsys.readouterr()
+
+    storage_content = get_json_content(storage)
+    assert DaylistCLI.model_validate(storage_content).expiry != past_expiry
 
 
 def test_show_builds_list(storage, capsys):

@@ -16,8 +16,6 @@ class TestTaskObject:
 
 
 class TestDaylistObject:
-    now = datetime.today()
-
     @staticmethod
     def setup_tasks(names=["task 1", "task 2"], durs=[60, 120]) -> list[TaskCLI]:
         if len(names) != len(durs):
@@ -49,14 +47,14 @@ class TestDaylistObject:
     @pytest.mark.parametrize(
         "sample_datetime,expected",
         [
-            (now, True),
-            (now + timedelta(days=1), False),
-            (now + timedelta(days=-1), False),
+            (datetime.now() + timedelta(hours=2), False),
+            (datetime.now() - timedelta(hours=2), True),
+            (datetime.now() - timedelta(days=1), True),
         ],
     )
-    def test_is_for_today(self, sample_datetime, expected):
-        test_list = DaylistCLI(created=sample_datetime)
-        assert test_list.is_for_today() == expected
+    def test_is_expired(self, sample_datetime, expected):
+        test_list = DaylistCLI(expiry=sample_datetime)
+        assert test_list.is_expired() == expected
 
     def test_add_task(self):
         test_list = DaylistCLI()

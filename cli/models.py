@@ -52,11 +52,11 @@ class DaylistCLI(BaseHasMetadata, Daylist):
         """
         return utils.deltasum(deltas=[task.estimate for task in self.pending_tasks])
 
-    def is_for_today(self) -> bool:
+    def is_expired(self) -> bool:
         """
-        Check if the todolist was created on the current day.
+        Check if the todolist is expired.
         """
-        return self.created.date() == datetime.now().date()
+        return self.expiry < datetime.now()
 
     def get_pending_task_at(self, index: int) -> TaskCLI:
         if index not in range(0, len(self.pending_tasks)):

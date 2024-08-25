@@ -1,7 +1,7 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import pytest
 
-from src.models import Task
+from src.models import Daylist, Task
 
 
 class TestTaskModel:
@@ -26,3 +26,10 @@ class TestTaskModel:
     def test_bad_name(self, bad_name):
         with pytest.raises(ValueError):
             Task(name=bad_name, estimate=100)
+
+
+class TestDaylistModel:
+    def test_expiry_past_24h(self):
+        # providing a far future expiry date is illegal
+        with pytest.raises(ValueError):
+            Daylist(expiry=datetime.now() + timedelta(days=10))

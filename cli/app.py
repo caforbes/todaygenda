@@ -117,7 +117,7 @@ def build_from_storage() -> DaylistCLI:
         daylist = DaylistCLI.model_validate(daylist)
 
         # if daylist is old, build a new one
-        if not daylist.is_for_today():
+        if daylist.is_expired():
             daylist = reset_daylist()
 
     return daylist
