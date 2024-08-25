@@ -1,18 +1,17 @@
-from datetime import datetime
 import json
 import os
 
 from fastapi import FastAPI
 
 from db.local import LOCAL_FILE
-from cli.models import Daylist, TodayView
+from src.models import Daylist
 
 app = FastAPI()
 
 
 @app.get("/")
-def read_today() -> TodayView:
-    """Read the current list and projected finish time for today."""
+def read_today():
+    """Read the current list of things to do today."""
 
     if not os.path.exists(LOCAL_FILE):
         return Daylist()
@@ -25,4 +24,4 @@ def read_today() -> TodayView:
     if not daylist.is_for_today():
         daylist = Daylist()
 
-    return TodayView(today=daylist, time_to_finish=daylist.total_estimate())
+    return daylist
