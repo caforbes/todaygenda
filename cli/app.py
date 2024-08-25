@@ -9,7 +9,7 @@ from typing_extensions import Annotated
 
 from db.local import LOCAL_FILE
 from cli.models import DaylistCLI, TaskCLI
-from cli.utils import PRETTY_DATE_FORMAT, duration_from_str
+from src.utils import PRETTY_DATE_FORMAT, duration_from_str
 
 
 # Setup
@@ -50,7 +50,8 @@ def show() -> None:
 def add(title: str, estimate: str) -> None:
     """
     Add a new task to your todolist, including the expected task estimate.
-    The estimate can be provided as a string (in format "1h30m"), or as a number of minutes (e.g. 90).
+    The estimate can be provided as a string (in format "1h30m"),
+    or as a number of minutes (e.g. 90).
     """
     daylist = build_from_storage()
     try:
@@ -86,7 +87,8 @@ def delete(task_number: int) -> None:
 @app.command()
 def complete(task_number: Annotated[int, typer.Argument()] = 1) -> None:
     """
-    Mark a task in the todolist as done/completed. Defaults to completing the first task.
+    Mark a task in the todolist as done/completed.
+    Defaults to completing the first task.
     """
     daylist = build_from_storage()
     task_index = task_number - 1
@@ -98,7 +100,7 @@ def complete(task_number: Annotated[int, typer.Argument()] = 1) -> None:
         raise e
 
     send_to_storage(daylist)
-    print(f"Another task completed!")
+    print("Another task completed!")
 
 
 # Helpers

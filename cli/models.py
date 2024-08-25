@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, model_validator
 
-from cli import utils
+from src import utils
 from src.models import BaseDaylist, Task, TaskStatus
 
 

@@ -46,7 +46,7 @@ def test_typical_userflow(storage, capsys):
     assert "estimate" in captured.out.lower()
 
 
-def test_list_expiry(storage, capsys):
+def test_list_expiry(storage):
     past_expiry = dt.datetime.now() - dt.timedelta(days=10)
     daylist = DaylistCLI(expiry=past_expiry)
     app.send_to_storage(daylist)
@@ -56,7 +56,6 @@ def test_list_expiry(storage, capsys):
 
     # new list is created after new command, with different expiry
     app.show()
-    captured = capsys.readouterr()
 
     storage_content = get_json_content(storage)
     assert DaylistCLI.model_validate(storage_content).expiry != past_expiry
@@ -92,9 +91,9 @@ def test_add(storage):
 
     bad_minutes = [-1, 0, 100000]
 
-    for bad_minutes in bad_minutes:
+    for mins in bad_minutes:
         with pytest.raises(ValueError):
-            app.add("task is okay", bad_minutes)
+            app.add("task is okay", mins)
 
 
 # Complete

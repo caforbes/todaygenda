@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from enum import StrEnum, auto
-from typing import Union
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing_extensions import Annotated
 

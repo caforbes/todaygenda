@@ -16,13 +16,12 @@ def temp_get_daylist() -> Daylist:
         return Daylist()
 
     with open(LOCAL_FILE) as f:
-        daylist = json.load(f)
-    daylist = Daylist.model_validate(daylist)
+        content = json.load(f)
+    daylist = Daylist.model_validate(content)
 
     # if daylist is old, build a new one
     if daylist.expiry < datetime.now():
-        daylist = Daylist()
-
+        return Daylist()
     return daylist
 
 
