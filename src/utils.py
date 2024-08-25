@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from functools import reduce
 
 
@@ -12,6 +12,5 @@ def deltasum(deltas: list[timedelta]) -> timedelta:
 
 
 def next_midnight() -> datetime:
-    today = date.today()
-    tomorrow = today + timedelta(days=1)
-    return datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day)
+    midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return midnight + timedelta(days=1)
