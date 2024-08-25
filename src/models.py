@@ -52,3 +52,15 @@ class Daylist(BaseModel):
         if expiry >= day_from_now:
             raise ValueError("Today's list expires after maximum 24 hours")
         return expiry
+
+
+class AgendaItem(BaseModel):
+    title: str
+    start: datetime
+    end: datetime
+
+
+class Agenda(BaseModel):
+    timeline: list[AgendaItem]
+    finish: datetime
+    past_expiry: bool
