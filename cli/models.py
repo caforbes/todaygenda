@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, model_validator
 
 from cli import utils
-from src.models import Daylist, Task, TaskStatus
+from src.models import BaseDaylist, Task, TaskStatus
 
 
 class BaseHasMetadata(BaseModel):
@@ -28,7 +28,10 @@ class TaskCLI(BaseHasMetadata, Task):
         self.mark_updated()
 
 
-class DaylistCLI(BaseHasMetadata, Daylist):
+class DaylistCLI(BaseHasMetadata, BaseDaylist):
+    pending_tasks: list[TaskCLI] = []
+    done_tasks: list[TaskCLI] = []
+
     @model_validator(mode="after")
     def check_tasks_by_status(self):
         if any(task.status != TaskStatus.PENDING for task in self.pending_tasks):
