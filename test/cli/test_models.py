@@ -31,7 +31,7 @@ class TestDaylistObject:
     def test_total_estimate(self):
         task_times = [10, 120]
         tasks = self.setup_tasks(durs=task_times)
-        test_list = DaylistCLI(tasks=tasks)
+        test_list = DaylistCLI(pending_tasks=tasks)
 
         # Assert tasks times are summed into the estimate
         assert test_list.total_estimate().total_seconds() == sum(task_times)
@@ -39,10 +39,10 @@ class TestDaylistObject:
     def test_total_estimate_with_done(self):
         task_times = [10, 120]
         tasks = self.setup_tasks(durs=task_times)
-        test_list = DaylistCLI(tasks=tasks)
+        test_list = DaylistCLI(pending_tasks=tasks)
 
         # Expect done tasks do not contribute to total estimate
-        tasks[0].mark_done()
+        test_list.complete_task(0)
         task_times.pop(0)
         assert test_list.total_estimate().total_seconds() == sum(task_times)
 
@@ -60,55 +60,42 @@ class TestDaylistObject:
 
     def test_add_task(self):
         test_list = DaylistCLI()
-        assert len(test_list.tasks) == 0
+        assert len(test_list.pending_tasks) == 0
 
         test_name = "hello"
         test_delta = timedelta(minutes=30)
         test_list.add_task(name=test_name, estimate=test_delta)
-        assert len(test_list.tasks) == 1
-        assert test_list.tasks[0].name == test_name
-
-    def test_list_tasks(self):
-        tasks = self.setup_tasks()
-        test_list = DaylistCLI(tasks=tasks)
-
-        tasks[0].mark_done()
-        assert len(test_list.done_tasks()) == 1
-        assert len(test_list.pending_tasks()) == len(tasks) - 1
+        assert len(test_list.pending_tasks) == 1
+        assert test_list.pending_tasks[0].name == test_name
 
     def test_remove_task(self):
         tasks = self.setup_tasks()
-        test_list = DaylistCLI(tasks=tasks)
+        test_list = DaylistCLI(pending_tasks=tasks)
 
-        assert len(test_list.tasks) == len(tasks)
+        assert len(test_list.pending_tasks) == len(tasks)
         test_list.remove_task(1)
-        assert len(test_list.tasks) == (len(tasks) - 1)
+        assert len(test_list.pending_tasks) == (len(tasks) - 1)
         test_list.remove_task(0)
-        assert len(test_list.tasks) == (len(tasks) - 2)
+        assert len(test_list.pending_tasks) == (len(tasks) - 2)
 
-    @pytest.mark.parametrize(
-        "bad_index, exception", [(10, IndexError), (-1, ValueError)]
-    )
-    def test_remove_task_bad_index(self, bad_index, exception):
-        test_list = DaylistCLI(tasks=self.setup_tasks())
-
-        with pytest.raises(exception):
+    @pytest.mark.parametrize("bad_index", [10, -1])
+    def test_remove_task_bad_index(self, bad_index):
+        test_list = DaylistCLI(pending_tasks=self.setup_tasks())
+        with pytest.raises(IndexError):
             test_list.remove_task(bad_index)
 
     def test_complete_task(self):
         tasks = self.setup_tasks()
-        test_list = DaylistCLI(tasks=tasks)
+        test_list = DaylistCLI(pending_tasks=tasks)
 
-        assert len(test_list.pending_tasks()) == len(tasks)
+        assert len(test_list.pending_tasks) == len(tasks)
         test_list.complete_task(1)
-        assert len(test_list.pending_tasks()) == (len(tasks) - 1)
+        assert len(test_list.pending_tasks) == (len(tasks) - 1)
         test_list.complete_task(0)
-        assert len(test_list.pending_tasks()) == (len(tasks) - 2)
+        assert len(test_list.pending_tasks) == (len(tasks) - 2)
 
-    @pytest.mark.parametrize(
-        "bad_index, exception", [(10, IndexError), (-1, ValueError)]
-    )
-    def test_complete_task_bad_index(self, bad_index, exception):
-        test_list = DaylistCLI(tasks=self.setup_tasks())
-        with pytest.raises(exception):
+    @pytest.mark.parametrize("bad_index", [10, -1])
+    def test_complete_task_bad_index(self, bad_index):
+        test_list = DaylistCLI(pending_tasks=self.setup_tasks())
+        with pytest.raises(IndexError):
             test_list.complete_task(bad_index)

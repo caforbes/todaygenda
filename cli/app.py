@@ -29,20 +29,17 @@ def show() -> None:
     # save in case you built/reset it
     send_to_storage(daylist)
 
-    todo_tasks = daylist.pending_tasks()
-    done_tasks = daylist.done_tasks()
-
-    if not todo_tasks:
-        if done_tasks:
+    if not daylist.pending_tasks:
+        if daylist.done_tasks:
             print("You've completed all the tasks in your list!")
         else:
             print("Your todolist is empty!")
         return
 
     now = dt.datetime.now()
-    display_tasks(todo_tasks, now)
+    display_tasks(daylist.pending_tasks, now)
     print(f"Total Time to Finish: {daylist.total_estimate()}\n")
-    print(f"{len(done_tasks)} Tasks Already Completed\n")
+    print(f"{len(daylist.done_tasks)} Tasks Already Completed\n")
 
     print(f"Current Time:\t\t{now.strftime(PRETTY_DATE_FORMAT)}")
     endtime = now + daylist.total_estimate()
@@ -78,8 +75,9 @@ def delete(task_number: int) -> None:
 
     try:
         daylist.remove_task(task_index)
-    except (IndexError, ValueError):
-        raise ValueError(f"Couldn't find task #{task_number}!")
+    except IndexError as e:
+        logging.error(f"Couldn't find task #{task_number}!")
+        raise e
 
     send_to_storage(daylist)
     print(f"Removed task #{task_number} from your list!")
@@ -95,8 +93,9 @@ def complete(task_number: Annotated[int, typer.Argument()] = 1) -> None:
 
     try:
         daylist.complete_task(task_index)
-    except (IndexError, ValueError):
-        raise ValueError(f"Couldn't find task #{task_number}!")
+    except IndexError as e:
+        logging.error(f"Couldn't find task #{task_number}!")
+        raise e
 
     send_to_storage(daylist)
     print(f"Another task completed!")

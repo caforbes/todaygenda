@@ -1,18 +1,19 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum, auto
-from pydantic import BaseModel, StringConstraints, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 from typing_extensions import Annotated
+
+import src.utils as utils
 
 
 class TaskStatus(StrEnum):
-    ACTIVE = auto()
     PENDING = auto()
     DONE = auto()
 
 
 class Task(BaseModel):
     name: Annotated[str, StringConstraints(min_length=1, max_length=200)]
-    estimate: timedelta
+    estimate: timedelta = timedelta(minutes=20)
     status: TaskStatus = TaskStatus.PENDING
 
     @field_validator("estimate")
@@ -36,5 +37,7 @@ class Task(BaseModel):
         return dur
 
 
-class Daylist:
-    tasks: list[Task] = []
+class Daylist(BaseModel):
+    # TODO: expiry: datetime = Field(default_factory=utils.next_midnight)
+    pending_tasks: list[Task] = []
+    done_tasks: list[Task] = []

@@ -35,7 +35,7 @@ def test_typical_userflow(storage, capsys):
     # storage location is created and updated
     assert os.path.exists(storage)
     storage_content = get_json_content(storage)
-    assert len(storage_content["tasks"]) == 1
+    assert len(storage_content["pending_tasks"]) == 1
 
     app.show()
     captured = capsys.readouterr()
@@ -56,15 +56,6 @@ def test_show_builds_list(storage, capsys):
 # Add
 
 
-def test_add_without_list(storage):
-    app.add("task added to non-list", 15)
-
-    storage_content = get_json_content(storage)
-
-    assert "tasks" in storage_content
-    assert len(storage_content["tasks"]) == 1
-
-
 def test_add(storage):
     # typical flow
     app.add("task 1", 11)
@@ -72,8 +63,8 @@ def test_add(storage):
 
     storage_content = get_json_content(storage)
 
-    assert "tasks" in storage_content
-    assert len(storage_content["tasks"]) == 2
+    assert len(storage_content["pending_tasks"]) == 2
+    assert len(storage_content["done_tasks"]) == 0
 
     # check bad userinput
     bad_names = ["", "a" * 250]
@@ -97,13 +88,16 @@ def test_complete(storage):
     app.add("task 2", 22)
     app.add("task 3", 33)
 
+    storage_content = get_json_content(storage)
+    assert len(storage_content["pending_tasks"]) == 3
+
     app.complete(3)
     app.complete(1)
 
     storage_content = get_json_content(storage)
 
-    assert "tasks" in storage_content
-    assert len(storage_content["tasks"]) == 3
+    assert len(storage_content["pending_tasks"]) == 1
+    assert len(storage_content["done_tasks"]) == 2
 
     # check bad userinput
     with pytest.raises(ValueError):
@@ -121,9 +115,9 @@ def test_delete(storage, capsys):
 
     storage_content = get_json_content(storage)
 
-    assert "tasks" in storage_content
-    assert len(storage_content["tasks"]) == 1
+    assert len(storage_content["pending_tasks"]) == 1
+    assert len(storage_content["done_tasks"]) == 0
 
     # check bad userinput
-    with pytest.raises(ValueError):
+    with pytest.raises(IndexError):
         app.delete(300)

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from cli import utils
 from src.models import Daylist, Task, TaskStatus
@@ -29,14 +29,28 @@ class TaskCLI(BaseHasMetadata, Task):
 
 
 class DaylistCLI(BaseHasMetadata, Daylist):
-    tasks: list[TaskCLI] = []
+    @model_validator(mode="after")
+    def check_tasks_by_status(self):
+        if any(task.status != TaskStatus.PENDING for task in self.pending_tasks):
+            raise ValueError("Non-pending task found in list")
+        if any(task.status != TaskStatus.DONE for task in self.done_tasks):
+            raise ValueError("Non-done task found in list")
+
+        self.pending_tasks = [
+            TaskCLI(name=task.name, estimate=task.estimate)
+            for task in self.pending_tasks
+        ]
+        self.done_tasks = [
+            TaskCLI(name=task.name, estimate=task.estimate) for task in self.done_tasks
+        ]
+        return self
 
     def total_estimate(self) -> timedelta:
         """
         Calculate the length required to complete the current todolist.
         Note: Basic addition is used for now.
         """
-        return utils.deltasum(deltas=[task.estimate for task in self.pending_tasks()])
+        return utils.deltasum(deltas=[task.estimate for task in self.pending_tasks])
 
     def is_for_today(self) -> bool:
         """
@@ -44,29 +58,17 @@ class DaylistCLI(BaseHasMetadata, Daylist):
         """
         return self.created.date() == datetime.now().date()
 
-    def done_tasks(self) -> list[TaskCLI]:
-        """
-        Get tasks with status DONE, already complete.
-        """
-        return [task for task in self.tasks if task.status == TaskStatus.DONE]
-
-    def pending_tasks(self) -> list[TaskCLI]:
-        """
-        Get tasks with status PENDING, yet to be completed.
-        """
-        return [task for task in self.tasks if task.status == TaskStatus.PENDING]
-
     def get_pending_task_at(self, index: int) -> TaskCLI:
-        if index < 0:
-            raise ValueError("Must provide the exact index.")
-        return self.pending_tasks()[index]
+        if index not in range(0, len(self.pending_tasks)):
+            raise IndexError("Must provide the exact index.")
+        return self.pending_tasks[index]
 
     def add_task(self, name=str, estimate=timedelta):
         """
         Add a task to this list.
         """
         task = TaskCLI(name=name, estimate=estimate)
-        self.tasks.append(task)
+        self.pending_tasks.append(task)
         self.mark_updated()
 
     def remove_task(self, index: int):
@@ -74,7 +76,7 @@ class DaylistCLI(BaseHasMetadata, Daylist):
         Remove a task from this list.
         """
         target = self.get_pending_task_at(index)
-        self.tasks.remove(target)  # just drop task for now
+        self.pending_tasks.remove(target)
         self.mark_updated()
 
     def complete_task(self, index: int):
@@ -83,4 +85,6 @@ class DaylistCLI(BaseHasMetadata, Daylist):
         """
         target = self.get_pending_task_at(index)
         target.mark_done()  # just drop task for now
+        self.pending_tasks.remove(target)
+        self.done_tasks.append(target)
         target.mark_updated()
