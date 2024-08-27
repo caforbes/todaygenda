@@ -5,20 +5,26 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.config import Settings
+from config import Settings, get_settings
 from db.local import LOCAL_FILE
 from src.models import Daylist, Agenda
-from src.timeline import build_agenda
+from src.operations import build_agenda
+
+
+def configure(app: FastAPI, settings: Settings):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],
+    )
+
 
 app = FastAPI()
-# origins = ["http://localhost:5173"]
-settings = Settings()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-)
+configure(app, get_settings())
+
+
+# DB
 
 
 def temp_get_daylist() -> Daylist:
@@ -33,6 +39,9 @@ def temp_get_daylist() -> Daylist:
     if daylist.expiry < datetime.now():
         return Daylist()
     return daylist
+
+
+# Routes
 
 
 @app.get("/")
