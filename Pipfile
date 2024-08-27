@@ -9,6 +9,7 @@ pydantic = "*"
 python-dotenv = "*"
 rich = "*"
 typer = "*"
+pydantic-settings = "*"
 
 [dev-packages]
 black = "*"
