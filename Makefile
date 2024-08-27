@@ -1,10 +1,10 @@
-default: typecheck lint build tests
+default: typecheck lint build pytest
 typecheck:
 	mypy src --strict
 	mypy api cli
 lint:
 	flake8
-tests:
+pytest:
 	@pytest
 coverage:
 	@coverage run -m pytest -q
