@@ -3,12 +3,22 @@ import json
 import os
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from api.config import Settings
 from db.local import LOCAL_FILE
 from src.models import Daylist, Agenda
 from src.timeline import build_agenda
 
 app = FastAPI()
+# origins = ["http://localhost:5173"]
+settings = Settings()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+)
 
 
 def temp_get_daylist() -> Daylist:
@@ -26,6 +36,12 @@ def temp_get_daylist() -> Daylist:
 
 
 @app.get("/")
+def read_root():
+    """Basic healthcheck."""
+    return "API server is running!"
+
+
+@app.get("/today")
 def read_today() -> Daylist:
     """Read the current list of things to do today.
 

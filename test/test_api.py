@@ -5,8 +5,15 @@ from api.main import app
 client = TestClient(app)
 
 
-def test_get_list():
+def test_get_root():
     response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data == "API server is running!"
+
+
+def test_get_list():
+    response = client.get("/today")
     assert response.status_code == 200
     data = response.json()
     assert data["done_tasks"] == []
