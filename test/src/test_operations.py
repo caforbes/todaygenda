@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime, timedelta
 
 from src.models import Daylist, Task, TaskStatus
-from src.timeline import build_agenda
+from src.operations import build_agenda
 
 TWENTY_M = timedelta(minutes=20)
 
