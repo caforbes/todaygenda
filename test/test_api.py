@@ -3,6 +3,7 @@
 Interacts with the test database.
 """
 
+from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
@@ -61,8 +62,8 @@ def test_get_agenda_empty(client):
 
 def test_get_list_is_new(client, db):
     userid = db.get_anon_user()["id"]
-    test_expiry = "2024-06-01 12:00 AM"
-    old_list = db.add_daylist(user_id=userid, expiry=test_expiry)
+    test_expiry = "2024-06-01T00:00:00"
+    old_list_id = db.add_daylist(user_id=userid, expiry=test_expiry)
     # FIX: add done/pending tasks to this list
 
     response = client.get("/today")
@@ -71,6 +72,5 @@ def test_get_list_is_new(client, db):
     data = response.json()
     assert data["done_tasks"] == []
     assert data["pending_tasks"] == []
-    assert data["expiry"] != test_expiry
-    # FIX: we actually need list ids from the model now
-    # assert data["id"] != old_list["id"]
+    assert data["id"] != old_list_id
+    assert datetime.fromisoformat(data["expiry"]) != datetime.fromisoformat(test_expiry)

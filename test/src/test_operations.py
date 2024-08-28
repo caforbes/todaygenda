@@ -11,7 +11,7 @@ TWENTY_M = timedelta(minutes=20)
 def empty_list() -> Daylist:
     """A list with no tasks, expires in 4h."""
     expiry = datetime.now() + timedelta(hours=4)
-    return Daylist(expiry=expiry)
+    return Daylist(id=0, expiry=expiry)
 
 
 @pytest.fixture()
@@ -28,7 +28,7 @@ def list_with_tasks() -> Daylist:
         Task(title="done item three", estimate=TWENTY_M, status=TaskStatus.DONE),
     ]
     expiry = datetime.now() + timedelta(hours=4)
-    return Daylist(pending_tasks=todos, done_tasks=done_tasks, expiry=expiry)
+    return Daylist(id=0, pending_tasks=todos, done_tasks=done_tasks, expiry=expiry)
 
 
 # build agenda

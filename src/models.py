@@ -47,6 +47,7 @@ class BaseDaylist(BaseModel):
 
 
 class Daylist(BaseDaylist):
+    id: int
     pending_tasks: list[Task] = []
     done_tasks: list[Task] = []
 
