@@ -33,4 +33,5 @@
 LICENSE
 README.md
 
+!bin/dbmate
 db/local.json

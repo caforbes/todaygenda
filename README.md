@@ -2,7 +2,7 @@
 
 This app allows you to create an agenda based on what you would like to accomplish today. Provide your todo list and some estimates, and it will construct an agenda that shows you the best order to accomplish your daily tasks.
 
-## Use the CLI todo list locally
+## Use the CLI tool
 
 1. Clone the package repository, and set up the package environment and dependencies.
     1. You'll need a working installation of Python 3.12
@@ -53,14 +53,18 @@ This app allows you to create an agenda based on what you would like to accompli
 
 ## Local setup
 
-1. Follow the instructions from step 1 above, AND ALSO:
+1. Follow the instructions from step 1 above, and then:
     1. Install development dependencies with `pipenv install --dev`
     2. Ensure you have Postgres installed. <!-- FIX: add details -->
-    3. Install [`dbmate`](https://github.com/amacneil/dbmate) to manage database migrations.
+    3. Install [`dbmate`](https://github.com/amacneil/dbmate) to manage database migrations. Or you can alias the version stored here (store your alias command in `.bashrc` for persistence):
+
+        ```sh
+        alias dbmate='bin/dbmate'
+        ```
+
 2. Environment variables should be setup in your `.env` file. (Use `docker.env` as a sample.)
     * `DATABASE_URL` and `TEST_DATABASE_URL`: Should be SQL connection strings with your credentials. Example: `postgresql://<USER>:<PW>@localhost:5432/todaygenda?sslmode=disable`
     * `ALLOWED_ORIGINS`: Should be a JSON string containing a list of origins that will be connecting. Example: `'["http://localhost:5173","https://www.example.com:5173"]'`
-    <!-- TODO: more steps for how to run + migrate -->
 3. Apply migrations. ([Get familiar with dbmate commands here.](https://github.com/amacneil/dbmate))
 
     ```sh
@@ -82,15 +86,24 @@ Some commands have been setup in the [Makefile](./Makefile) for helpful developm
 * Typecheck, format, lint: `make` or `make default`
 * Test: `make pytest`
 * Coverage report: `make coverage`
-* Format/lint (plus build dependencies): `make testall`
+* The whole shabang: `make testall`
 
 ## Setup with Docker
 
 1. Clone the package repository.
-2. Create a file `db/password.txt` containing your preferred user password for the database. Update the password in your copy of the `docker.env` file.
-    * You may also wish to update other environment variables in that file for your purposes..
+2. Edit the file `db/password.txt` with your preferred user password for the database. Update the password in your copy of the `docker.env` file.
+    * You may also wish to update other environment variables in that file for your purposes.
 3. Run `docker compose up --build`. Confirm that the containers built successfully.
-4. <!-- TODO: migration step --> ?
-5. You are set up. Future runs can use:
+4. Open a bash terminal in the container and run migrations. Migrations can be checked and run with `bin/dbmate`.
+
+    ```sh
+    docker-compose exec server bash
+    # in the container:
+    $ bin/dbmate status         # check the migration status (no alias)
+    $ alias dbmate='bin/dbmate' # set a temporary alias if you like
+    $ dbmate up                 # run migrations (with alias)
+    ```
+
+5. You are set up. On future runs:
     * Run the server with `docker compose up`
     * Visit the api docs running at: [http://localhost:8000/docs](http://localhost:8000/docs)
