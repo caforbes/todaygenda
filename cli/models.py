@@ -15,15 +15,11 @@ class BaseHasMetadata(BaseModel):
 
 class TaskCLI(BaseHasMetadata, Task):
     def estimatestr(self) -> str:
-        """
-        Task estimate as a string in format 1m / 2h / 1h20m
-        """
+        """Task estimate as a string in format 1m / 2h / 1h20m."""
         return utils.duration_to_str(self.estimate)
 
     def mark_done(self):
-        """
-        Mark task as DONE.
-        """
+        """Mark task as DONE."""
         self.status = TaskStatus.DONE
         self.mark_updated()
 
@@ -50,16 +46,14 @@ class DaylistCLI(BaseHasMetadata, BaseDaylist):
         return self
 
     def total_estimate(self) -> timedelta:
-        """
-        Calculate the length required to complete the current todolist.
+        """Calculate the length required to complete the current todolist.
+
         Note: Basic addition is used for now.
         """
         return utils.deltasum(deltas=[task.estimate for task in self.pending_tasks])
 
     def is_expired(self) -> bool:
-        """
-        Check if the todolist is expired.
-        """
+        """Check if the todolist is expired."""
         return self.expiry < datetime.now()
 
     def get_pending_task_at(self, index: int) -> TaskCLI:
@@ -68,25 +62,19 @@ class DaylistCLI(BaseHasMetadata, BaseDaylist):
         return self.pending_tasks[index]
 
     def add_task(self, title=str, estimate=timedelta):
-        """
-        Add a task to this list.
-        """
+        """Add a task to this list."""
         task = TaskCLI(title=title, estimate=estimate)
         self.pending_tasks.append(task)
         self.mark_updated()
 
     def remove_task(self, index: int):
-        """
-        Remove a task from this list.
-        """
+        """Remove a task from this list."""
         target = self.get_pending_task_at(index)
         self.pending_tasks.remove(target)
         self.mark_updated()
 
     def complete_task(self, index: int):
-        """
-        Mark a pending task in the list as done.
-        """
+        """Mark a pending task in the list as done."""
         target = self.get_pending_task_at(index)
         target.mark_done()  # just drop task for now
         self.pending_tasks.remove(target)

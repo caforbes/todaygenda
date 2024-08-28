@@ -11,6 +11,7 @@ DB = query_connect(SETTINGS.database_url)
 
 
 def temp_get_daylist() -> Daylist:
+    """Get or create an unexpired daylist for today, for a placeholder user."""
     with DB.transaction():
         temp_user_id = DB.get_anon_user()["id"]
         active_daylist = DB.get_active_daylist(user_id=temp_user_id)

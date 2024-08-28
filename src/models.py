@@ -19,9 +19,7 @@ class Task(BaseModel):
     @field_validator("estimate")
     @classmethod
     def estimate_under_24h(cls, dur: timedelta) -> timedelta:
-        """
-        Ensure time estimates can't exceed 1 day / 24h.
-        """
+        """Ensure time estimates can't exceed 1 day / 24h."""
         if dur.days > 0:
             raise ValueError("Task time estimates must be less than 24 hours")
         return dur
@@ -29,9 +27,7 @@ class Task(BaseModel):
     @field_validator("estimate")
     @classmethod
     def estimate_minimum(cls, dur: timedelta) -> timedelta:
-        """
-        Ensure task estimates are above zero.
-        """
+        """Ensure task estimates are above zero."""
         if dur.total_seconds() <= 0:
             raise ValueError("Task must have a provided time estimate.")
         return dur
@@ -43,9 +39,7 @@ class BaseDaylist(BaseModel):
     @field_validator("expiry")
     @classmethod
     def expiry_limits(cls, expiry: datetime) -> datetime:
-        """
-        Ensure expiry is less than 24h from now.
-        """
+        """Ensure expiry is less than 24h from now."""
         day_from_now = datetime.now() + timedelta(days=1)
         if expiry >= day_from_now:
             raise ValueError("Today's list expires after maximum 24 hours")

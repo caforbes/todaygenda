@@ -34,8 +34,8 @@ def read_root():
 def read_today() -> Daylist:
     """Read the current list of things to do today.
 
-    Contains a list of pending tasks and done tasks.
-    This list expires within a 24-hour window of creation.
+    Contains a list of pending tasks and done tasks. This list expires within a 24-hour
+    window of creation.
     """
     return backend.temp_get_daylist()
 
@@ -44,8 +44,8 @@ def read_today() -> Daylist:
 def read_agenda() -> Agenda:
     """Read a timeline of what to do next.
 
-    Contains a timeline and indicates the overall finish time.
-    Includes warnings for if the timeline exceeds the daily list expiry time.
+    Contains a timeline and indicates the overall finish time. Includes warnings for if
+    the timeline exceeds the daily list expiry time.
     """
     daylist = backend.temp_get_daylist()
     agenda = backend.build_agenda(daylist)

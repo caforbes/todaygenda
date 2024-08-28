@@ -1,5 +1,5 @@
-"""
-For integration testing, from API call to full response based on database content.
+"""For integration testing, from API call to full response based on database content.
+
 Interacts with the test database.
 """
 

@@ -1,5 +1,6 @@
-"""
-For database function testing. Interacts with the test database.
+"""For database function testing.
+
+Interacts with the test database.
 """
 
 import pytest

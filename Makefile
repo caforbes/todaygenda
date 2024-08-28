@@ -1,8 +1,11 @@
-default: typecheck lint pytest
-testall: typecheck lint build testrollback coverage
+default: typecheck format lint pytest
+testall: typecheck format lint build testrollback coverage
 typecheck:
 	@mypy src --strict
 	@mypy api cli db
+format:
+	@black api cli db src test *.py
+	@docformatter -r . --black
 lint:
 	@flake8
 	@echo "Good lint!"
