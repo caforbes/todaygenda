@@ -7,7 +7,7 @@ from cli.models import TaskCLI, DaylistCLI
 
 class TestTaskObject:
     def test_mark_done(self):
-        """Mark task as done and update its metadata"""
+        """Mark task as done and update its metadata."""
         task = TaskCLI(title="teststset", estimate=100)
         assert task.status == TaskStatus.PENDING
         task.mark_done()

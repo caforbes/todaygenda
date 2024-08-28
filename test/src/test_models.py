@@ -6,7 +6,7 @@ from src.models import Daylist, Task
 
 class TestTaskModel:
     def test_interpret_with_seconds(self):
-        """Ensure integers on time estimates are interpreted as seconds"""
+        """Ensure integers on time estimates are interpreted as seconds."""
         seconds = 100
         task = Task(title="test", estimate=seconds)
         assert task.estimate.total_seconds() == seconds
