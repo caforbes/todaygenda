@@ -1,4 +1,4 @@
--- :name get_latest_daylist :one
+-- :name get_active_daylist :one
 SELECT id, expiry
     FROM daylists 
     WHERE user_id = :user_id AND expiry > now()

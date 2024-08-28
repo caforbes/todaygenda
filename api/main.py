@@ -1,17 +1,14 @@
-from datetime import datetime
-import json
-import os
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import Settings, get_settings
-from db.local import LOCAL_FILE
+from config import Settings
+
 from src.models import Daylist, Agenda
-from src.operations import build_agenda
+import src.operations as backend
 
 
 def configure(app: FastAPI, settings: Settings):
+    """Set up app settings from env."""
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -21,24 +18,7 @@ def configure(app: FastAPI, settings: Settings):
 
 
 app = FastAPI()
-configure(app, get_settings())
-
-
-# DB
-
-
-def temp_get_daylist() -> Daylist:
-    if not os.path.exists(LOCAL_FILE):
-        return Daylist()
-
-    with open(LOCAL_FILE) as f:
-        content = json.load(f)
-    daylist = Daylist.model_validate(content)
-
-    # if daylist is old, build a new one
-    if daylist.expiry < datetime.now():
-        return Daylist()
-    return daylist
+configure(app, backend.SETTINGS)
 
 
 # Routes
@@ -57,7 +37,7 @@ def read_today() -> Daylist:
     Contains a list of pending tasks and done tasks.
     This list expires within a 24-hour window of creation.
     """
-    return temp_get_daylist()
+    return backend.temp_get_daylist()
 
 
 @app.get("/agenda")
@@ -67,6 +47,6 @@ def read_agenda() -> Agenda:
     Contains a timeline and indicates the overall finish time.
     Includes warnings for if the timeline exceeds the daily list expiry time.
     """
-    daylist = temp_get_daylist()
-    agenda = build_agenda(daylist)
+    daylist = backend.temp_get_daylist()
+    agenda = backend.build_agenda(daylist)
     return agenda

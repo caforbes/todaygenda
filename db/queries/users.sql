@@ -10,7 +10,7 @@ SELECT count(id) FROM users WHERE email IS NULL;
 SELECT id FROM users WHERE id = :user_id;
 
 -- :name get_anon_user :one
-SELECT id FROM users WHERE email IS NULL LIMIT 1;
+SELECT id FROM users WHERE email IS NULL ORDER BY created_at DESC LIMIT 1;
 
 
 
