@@ -1,3 +1,8 @@
+-- :name count_tasks :scalar
+SELECT count(id)
+    FROM tasks 
+    WHERE daylist_id = :daylist_id;
+
 -- :name get_pending_tasks :many
 SELECT id, title, estimate
     FROM tasks 
@@ -25,6 +30,6 @@ WITH alias (target_user_id, max_order) AS (
 INSERT INTO tasks
     (title, estimate, daylist_id, daylist_order, user_id)
     VALUES (:title, :estimate, :daylist_id,
-            (SELECT max_order from alias),
+            (SELECT max_order + 1 from alias),
             (SELECT target_user_id from alias))
     RETURNING id;
