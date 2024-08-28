@@ -1,13 +1,8 @@
+"""
+For database function testing. Interacts with the test database.
+"""
+
 import pytest
-
-from db.connect import query_connect
-
-
-@pytest.fixture(scope="module")
-def db(settings):
-    assert "test" in settings.database_url
-    queries = query_connect(url=settings.database_url)
-    return queries
 
 
 @pytest.fixture()
