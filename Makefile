@@ -1,5 +1,5 @@
 default: typecheck format lint pytest
-testall: typecheck format lint build testrollback coverage
+testall: typecheck format lint build coverage
 typecheck:
 	@mypy src --strict
 	@mypy api cli db
@@ -22,9 +22,15 @@ build:
 cleartestdb:
 	@dbmate -e TEST_DATABASE_URL drop
 	@dbmate -e TEST_DATABASE_URL up
-testrollback:
-	@dbmate -e TEST_DATABASE_URL rollback
+testmigrate:
 	@dbmate -e TEST_DATABASE_URL migrate
+	@dbmate -e TEST_DATABASE_URL rollback
 	@echo "Migration was successfully rolled back and re-migrated!"
+	@echo "Make sure to APPLY the migration next."
+testmigrate-local: backupdb
+	@dbmate migrate
+	@dbmate rollback
+	@echo "Migration was successfully rolled back and re-migrated!"
+	@echo "Make sure to APPLY the migration next."
 backupdb:
-	pg_dump ${DATABASE_URL} > export.sql
+	pg_dump ${DATABASE_URL} > backup.sql

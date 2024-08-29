@@ -49,9 +49,7 @@ This app allows you to create an agenda based on what you would like to accompli
     today show
     ```
 
-## Development
-
-## Local setup
+## Development: Local
 
 1. Follow the instructions from step 1 above, and then:
     1. Install development dependencies with `pipenv install --dev`
@@ -88,7 +86,7 @@ Some commands have been setup in the [Makefile](./Makefile) for helpful developm
 * Coverage report: `make coverage`
 * The whole shabang: `make testall`
 
-## Setup with Docker
+## Build: Docker
 
 1. Clone the package repository.
 2. Edit the file `db/password.txt` with your preferred user password for the database. Update the password in your copy of the `docker.env` file.
