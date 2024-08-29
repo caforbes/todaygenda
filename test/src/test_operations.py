@@ -18,14 +18,14 @@ def empty_list() -> Daylist:
 def list_with_tasks() -> Daylist:
     """A list with 1h of pending tasks, 1h of done tasks, expires in 4h."""
     todos = [
-        Task(title="one", estimate=TWENTY_M),
-        Task(title="two", estimate=TWENTY_M),
-        Task(title="three", estimate=TWENTY_M),
+        Task(id=0, title="one", estimate=TWENTY_M),
+        Task(id=0, title="two", estimate=TWENTY_M),
+        Task(id=0, title="three", estimate=TWENTY_M),
     ]
     done_tasks = [
-        Task(title="done item one", estimate=TWENTY_M, status=TaskStatus.DONE),
-        Task(title="done item two", estimate=TWENTY_M, status=TaskStatus.DONE),
-        Task(title="done item three", estimate=TWENTY_M, status=TaskStatus.DONE),
+        Task(id=0, title="done item one", estimate=TWENTY_M, status=TaskStatus.DONE),
+        Task(id=0, title="done item two", estimate=TWENTY_M, status=TaskStatus.DONE),
+        Task(id=0, title="done item three", estimate=TWENTY_M, status=TaskStatus.DONE),
     ]
     expiry = datetime.now() + timedelta(hours=4)
     return Daylist(id=0, pending_tasks=todos, done_tasks=done_tasks, expiry=expiry)

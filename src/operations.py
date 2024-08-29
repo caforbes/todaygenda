@@ -10,15 +10,24 @@ SETTINGS = get_settings()
 DB = query_connect(SETTINGS.database_url)
 
 
-def temp_get_daylist() -> Daylist:
+def temp_get_or_make_todaylist() -> Daylist:
     """Get or create an unexpired daylist for today, for a placeholder user."""
-    with DB.transaction():
-        temp_user_id = DB.get_anon_user()["id"]
-        active_daylist = DB.get_active_daylist(user_id=temp_user_id)
+    # get this user - MVP just get the top user
+    temp_user = DB.get_anon_user()
+    if temp_user is None:
+        # TODO: add handling in api - 400 etc
+        raise ValueError("Attempt to retrieve user that does not exist.")
 
-        if not active_daylist:
-            DB.add_daylist(user_id=temp_user_id, expiry=next_midnight())
-            active_daylist = DB.get_active_daylist(user_id=temp_user_id)
+    uid = temp_user["id"]
+    with DB.transaction():
+        # TODO: eventually, we should supply a userid from the current session
+        active_daylist = DB.get_active_daylist(user_id=uid)
+
+        if active_daylist:
+            active_daylist["pending_tasks"] = list(DB.get_pending_tasks(user_id=uid))
+        else:
+            DB.add_daylist(user_id=uid, expiry=next_midnight())
+            active_daylist = DB.get_active_daylist(user_id=uid)
 
     return Daylist.model_validate(active_daylist)
 

@@ -70,7 +70,6 @@ CREATE TABLE public.schema_migrations (
 
 CREATE TABLE public.tasks (
     id integer NOT NULL,
-    user_id integer NOT NULL,
     title character varying(200) NOT NULL,
     status public.task_status DEFAULT 'pending'::public.task_status NOT NULL,
     estimate interval,
@@ -78,7 +77,9 @@ CREATE TABLE public.tasks (
     updated_at timestamp without time zone,
     finished_at timestamp without time zone,
     daylist_id integer NOT NULL,
-    daylist_order integer NOT NULL
+    daylist_order integer,
+    CONSTRAINT check_done_tasks_unordered CHECK (((daylist_order IS NULL) OR (status = 'pending'::public.task_status))),
+    CONSTRAINT check_pending_tasks_ordered CHECK (((daylist_order IS NOT NULL) OR (status = 'done'::public.task_status)))
 );
 
 
@@ -156,14 +157,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- Name: tasks check_tasks_ordered_in_daylist; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT check_tasks_ordered_in_daylist UNIQUE (daylist_id, daylist_order);
-
-
---
 -- Name: daylists daylists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -185,6 +178,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.tasks
     ADD CONSTRAINT tasks_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tasks unique_task_order_in_daylist; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT unique_task_order_in_daylist UNIQUE (daylist_id, daylist_order);
 
 
 --
@@ -212,14 +213,6 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- Name: tasks tasks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- PostgreSQL database dump complete
 --
 
@@ -229,4 +222,5 @@ ALTER TABLE ONLY public.tasks
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20240824004320');
+    ('20240824004320'),
+    ('20240828065735');

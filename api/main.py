@@ -37,7 +37,7 @@ def read_today() -> Daylist:
     Contains a list of pending tasks and done tasks. This list expires within a 24-hour
     window of creation.
     """
-    return backend.temp_get_daylist()
+    return backend.temp_get_or_make_todaylist()
 
 
 @app.get("/agenda")
@@ -47,6 +47,6 @@ def read_agenda() -> Agenda:
     Contains a timeline and indicates the overall finish time. Includes warnings for if
     the timeline exceeds the daily list expiry time.
     """
-    daylist = backend.temp_get_daylist()
+    daylist = backend.temp_get_or_make_todaylist()
     agenda = backend.build_agenda(daylist)
     return agenda

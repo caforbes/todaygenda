@@ -14,6 +14,8 @@ class BaseHasMetadata(BaseModel):
 
 
 class TaskCLI(BaseHasMetadata, Task):
+    id: int = 0
+
     def estimatestr(self) -> str:
         """Task estimate as a string in format 1m / 2h / 1h20m."""
         return utils.duration_to_str(self.estimate)

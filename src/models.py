@@ -12,6 +12,7 @@ class TaskStatus(StrEnum):
 
 
 class Task(BaseModel):
+    id: int
     title: Annotated[str, StringConstraints(min_length=1, max_length=200)]
     estimate: timedelta
     status: TaskStatus = TaskStatus.PENDING
