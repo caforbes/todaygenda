@@ -140,11 +140,79 @@ def test_get_list_empty(client, db, temp_userid):
 # TODO: GET today's timeline/agenda
 
 
-def test_get_agenda_empty(client):
+@pytest.mark.skip()
+def test_get_agenda_no_user(client):
+    """User not found."""
+    response = client.get("/agenda")
+    assert response.status_code == 400  # or something
+
+
+def test_get_agenda_none(client):
+    """No previous list for this user, just returns empty agenda."""
     response = client.get("/agenda")
     assert response.status_code == 200
 
     data = response.json()
+    # empty agenda, no warning with finish time = now (prev minute)
     assert data["timeline"] == []
     assert data["past_expiry"] is False
+    assert datetime.fromisoformat(data["finish"]) <= datetime.now()
+
+
+def test_get_agenda_expired(client, db, temp_userid):
+    """An expired list exists for this user - agenda should be blank."""
+    old_list_id = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
+    # TODO: a done task too
+
+    response = client.get("/agenda")
+    assert response.status_code == 200
+
+    data = response.json()
+    # empty agenda, no warning with finish time = now (prev minute)
+    assert data["timeline"] == []
+    assert data["past_expiry"] is False
+    assert datetime.fromisoformat(data["finish"]) <= datetime.now()
+
+
+def test_get_agenda_empty(client, db, temp_userid):
+    """An active list with tasks exists for this user - return the agenda."""
+    # current list but also old expired list
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
+
+    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    expected_pending = []
+
+    response = client.get("/agenda")
+    assert response.status_code == 200
+
+    data = response.json()
+    # empty agenda, no warning with finish time = now (prev minute)
+    assert data["timeline"] == expected_pending
+    assert data["past_expiry"] is False
+    assert datetime.fromisoformat(data["finish"]) <= datetime.now()
+
+
+def test_get_agenda_active(client, db, temp_userid):
+    """An active list exists for this user - return it with nested tasks."""
+    # current list but also old expired list
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
+
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    expected_pending = [
+        db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
+        db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
+        db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M"),
+    ]
+    # TODO: add done tasks to this list too
+
+    response = client.get("/agenda")
+    assert response.status_code == 200
+
+    data = response.json()
+    # should contain the agenda for these items
+    assert len(data["timeline"]) == len(expected_pending)
+    assert "past_expiry" in data
     assert "finish" in data
