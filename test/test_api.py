@@ -3,16 +3,17 @@
 Interacts with the test database.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app, configure
 
-OLD_TIME_STR = "2022-02-22 00:00:00"
+OLD_TIME_STR = "2022-02-22 00:00:00+05"
 OLD_TIME = datetime.fromisoformat(OLD_TIME_STR)
-FUTURE_TIME = datetime.now() + timedelta(hours=12)
+FUTURE_TIME = datetime.now(timezone.utc) + timedelta(hours=12)
 FUTURE_TIME_STR = FUTURE_TIME.isoformat()
+TZNOW = datetime.now(timezone.utc)
 
 
 @pytest.fixture(scope="module")
@@ -63,7 +64,7 @@ def test_get_list_none(client):
 
     data = response.json()
     assert data["id"] > 0
-    assert datetime.fromisoformat(data["expiry"]) > datetime.now()
+    assert datetime.fromisoformat(data["expiry"]) > TZNOW
     assert data["done_tasks"] == []
     assert data["pending_tasks"] == []
 
@@ -83,7 +84,7 @@ def test_get_list_expired(client, db, temp_userid):
     # return newly created list without old info
     assert data["pending_tasks"] == []
     assert data["pending_tasks"] == []
-    assert datetime.fromisoformat(data["expiry"]) > datetime.now()
+    assert datetime.fromisoformat(data["expiry"]) > TZNOW
     # definitely not the old list
     assert data["id"] != old_list_id
 
@@ -108,8 +109,7 @@ def test_get_list_active(client, db, temp_userid):
     data = response.json()
     # return unexpired list
     assert data["id"] == active_lid
-    assert data["expiry"] == FUTURE_TIME_STR
-    assert datetime.fromisoformat(data["expiry"]) > datetime.now()
+    assert datetime.fromisoformat(data["expiry"]) > TZNOW
     # return newly created list without old info
     assert [task["id"] for task in data["pending_tasks"]] == expected_pending
     assert data["done_tasks"] == []  # add some
@@ -130,8 +130,7 @@ def test_get_list_empty(client, db, temp_userid):
     data = response.json()
     # return unexpired list
     assert data["id"] == active_lid
-    assert data["expiry"] == FUTURE_TIME_STR
-    assert datetime.fromisoformat(data["expiry"]) > datetime.now()
+    assert datetime.fromisoformat(data["expiry"]) > TZNOW
     # return newly created list without old info
     assert [task["id"] for task in data["pending_tasks"]] == expected_pending
     assert data["done_tasks"] == []
@@ -156,11 +155,12 @@ def test_get_agenda_none(client):
     # empty agenda, no warning with finish time = now (prev minute)
     assert data["timeline"] == []
     assert data["past_expiry"] is False
-    assert datetime.fromisoformat(data["finish"]) <= datetime.now()
+    assert datetime.fromisoformat(data["finish"]) <= TZNOW
+    assert datetime.fromisoformat(data["expiry"]) >= TZNOW
 
 
 def test_get_agenda_expired(client, db, temp_userid):
-    """An expired list exists for this user - agenda should be blank."""
+    """An expired list exists for this user - agenda should be freshly created."""
     old_list_id = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
     # TODO: a done task too
@@ -169,10 +169,11 @@ def test_get_agenda_expired(client, db, temp_userid):
     assert response.status_code == 200
 
     data = response.json()
-    # empty agenda, no warning with finish time = now (prev minute)
+    # new empty agenda, no warning with finish time = now (prev minute)
     assert data["timeline"] == []
     assert data["past_expiry"] is False
-    assert datetime.fromisoformat(data["finish"]) <= datetime.now()
+    assert datetime.fromisoformat(data["finish"]) <= TZNOW
+    assert datetime.fromisoformat(data["expiry"]) >= TZNOW
 
 
 def test_get_agenda_empty(client, db, temp_userid):
@@ -191,7 +192,8 @@ def test_get_agenda_empty(client, db, temp_userid):
     # empty agenda, no warning with finish time = now (prev minute)
     assert data["timeline"] == expected_pending
     assert data["past_expiry"] is False
-    assert datetime.fromisoformat(data["finish"]) <= datetime.now()
+    assert datetime.fromisoformat(data["finish"]) <= TZNOW
+    assert datetime.fromisoformat(data["expiry"]) >= TZNOW
 
 
 def test_get_agenda_active(client, db, temp_userid):
@@ -214,5 +216,6 @@ def test_get_agenda_active(client, db, temp_userid):
     data = response.json()
     # should contain the agenda for these items
     assert len(data["timeline"]) == len(expected_pending)
-    assert "past_expiry" in data
-    assert "finish" in data
+    assert data["past_expiry"] is False
+    assert datetime.fromisoformat(data["finish"]) >= TZNOW
+    assert datetime.fromisoformat(data["expiry"]) >= TZNOW

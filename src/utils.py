@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import reduce
 import logging
 import math
@@ -17,8 +17,8 @@ def deltasum(deltas: list[timedelta]) -> timedelta:
     return reduce(lambda t1, t2: t1 + t2, deltas, timedelta())
 
 
-def next_midnight() -> datetime:
-    midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+def next_midnight(tz: timezone = timezone.utc) -> datetime:
+    midnight = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     return midnight + timedelta(days=1)
 
 

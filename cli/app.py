@@ -130,6 +130,7 @@ def send_to_storage(daylist: DaylistCLI) -> None:
 def reset_daylist() -> DaylistCLI:
     """Build a fresh daylist, with prompt as needed."""
     print("Building new list for today!")
+    # FIX: should use system time midnight, not UTC
     return DaylistCLI()
 
 

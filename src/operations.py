@@ -33,7 +33,7 @@ def temp_get_or_make_todaylist() -> Daylist:
 
 
 def build_agenda(daylist: Daylist) -> Agenda:
-    timestamp = dt.datetime.now().replace(second=0, microsecond=0)
+    timestamp = dt.datetime.now(dt.timezone.utc).replace(second=0, microsecond=0)
     items = []
     for task in daylist.pending_tasks:
         items.append(
@@ -47,6 +47,7 @@ def build_agenda(daylist: Daylist) -> Agenda:
 
     return Agenda(
         timeline=items,
+        expiry=daylist.expiry,
         finish=timestamp,
         past_expiry=(timestamp > daylist.expiry),
     )

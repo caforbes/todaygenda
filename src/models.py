@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import StrEnum, auto
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import AwareDatetime, BaseModel, Field, StringConstraints, field_validator
 from typing_extensions import Annotated
 
 import src.utils as utils
@@ -35,13 +35,13 @@ class Task(BaseModel):
 
 
 class BaseDaylist(BaseModel):
-    expiry: datetime = Field(default_factory=utils.next_midnight)
+    expiry: AwareDatetime = Field(default_factory=utils.next_midnight)
 
     @field_validator("expiry")
     @classmethod
     def expiry_limits(cls, expiry: datetime) -> datetime:
         """Ensure expiry is less than 24h from now."""
-        day_from_now = datetime.now() + timedelta(days=1)
+        day_from_now = datetime.now(timezone.utc) + timedelta(days=1)
         if expiry >= day_from_now:
             raise ValueError("Today's list expires after maximum 24 hours")
         return expiry
@@ -55,11 +55,12 @@ class Daylist(BaseDaylist):
 
 class AgendaItem(BaseModel):
     title: str
-    start: datetime
-    end: datetime
+    start: AwareDatetime
+    end: AwareDatetime
 
 
 class Agenda(BaseModel):
     timeline: list[AgendaItem]
-    finish: datetime
+    finish: AwareDatetime
+    expiry: AwareDatetime
     past_expiry: bool

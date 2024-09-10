@@ -7,15 +7,15 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 import pytest
 
-FUTURE_TIME = "2122-02-22T00:00:00"
-OLD_TIME = "2020-02-20 00:00:00"
+FUTURE_TIME = "2122-02-22T00:00:00+05"
+OLD_TIME = "2020-02-20 00:00:00+05"
 
 
 @pytest.fixture()
 def seed(db):
     userid = db.add_anon_user()
-    db.add_daylist(user_id=userid, expiry="2014-02-14T00:00:00")
-    db.add_daylist(user_id=userid, expiry="2024-07-24T00:00:00")
+    db.add_daylist(user_id=userid, expiry="2014-02-14T00:00:00+05")
+    db.add_daylist(user_id=userid, expiry="2024-07-24T00:00:00+05")
     yield
 
 
@@ -130,7 +130,7 @@ class TestDaylist:
 
     def test_get_active_daylist_old(cls, db):
         uid = cls.uid(db)
-        db.add_daylist(user_id=uid, expiry="2022-02-22T00:00:00")
+        db.add_daylist(user_id=uid, expiry=OLD_TIME)
         result = db.get_active_daylist(user_id=uid)
         assert result is None
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 
 from src.models import Daylist, Task
@@ -29,7 +29,14 @@ class TestTaskModel:
 
 
 class TestDaylistModel:
+    def test_expiry_good(self):
+        # providing a valid expiry date
+        daylist = Daylist(
+            id=1, expiry=datetime.now(timezone.utc).replace(microsecond=0)
+        )
+        assert daylist.id == 1
+
     def test_expiry_past_24h(self):
         # providing a far future expiry date is illegal
         with pytest.raises(ValueError):
-            Daylist(id=1, expiry=datetime.now() + timedelta(days=10))
+            Daylist(id=1, expiry=datetime.now(timezone.utc) + timedelta(days=10))
