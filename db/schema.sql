@@ -30,7 +30,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.daylists (
     id integer NOT NULL,
     user_id integer NOT NULL,
-    expiry timestamp without time zone NOT NULL,
+    expiry timestamp with time zone NOT NULL,
     created_at timestamp without time zone DEFAULT now()
 );
 
@@ -223,4 +223,5 @@ ALTER TABLE ONLY public.tasks
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20240824004320'),
-    ('20240828065735');
+    ('20240828065735'),
+    ('20240909225518');
