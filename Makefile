@@ -23,8 +23,8 @@ cleartestdb:
 	@dbmate -e TEST_DATABASE_URL drop
 	@dbmate -e TEST_DATABASE_URL up
 testmigrate:
-	@dbmate -e TEST_DATABASE_URL migrate
-	@dbmate -e TEST_DATABASE_URL rollback
+	@dbmate --no-dump-schema -e TEST_DATABASE_URL migrate
+	@dbmate --no-dump-schema -e TEST_DATABASE_URL rollback
 	@echo "Migration was successfully rolled back and re-migrated!"
 	@echo "Make sure to APPLY the migration next."
 testmigrate-local: backupdb
