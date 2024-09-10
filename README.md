@@ -7,7 +7,7 @@ This app allows you to create an agenda based on what you would like to accompli
 1. Clone the package repository, and set up the package environment and dependencies.
     1. You'll need a working installation of Python 3.12
     2. Setup CLI dependencies by installing Pipenv and installing packages.
-    <!-- FIX: add details to these steps -->
+    <!-- BOOKMARK: add details to these steps -->
 2. Open the program environment with `pipenv shell`. Or, prefix all the following commands with `pipenv run`.
 
 3. View the program documentation and available commands:
@@ -53,7 +53,7 @@ This app allows you to create an agenda based on what you would like to accompli
 
 1. Follow the instructions from step 1 above, and then:
     1. Install development dependencies with `pipenv install --dev`
-    2. Ensure you have Postgres installed. <!-- FIX: add details -->
+    2. Ensure you have Postgres installed. <!-- BOOKMARK: add details -->
     3. Install [`dbmate`](https://github.com/amacneil/dbmate) to manage database migrations. Or you can alias the version stored here (store your alias command in `.bashrc` for persistence):
 
         ```sh

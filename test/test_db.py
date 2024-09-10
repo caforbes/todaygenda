@@ -84,12 +84,7 @@ class TestUsers:
         result = db.add_anon_user()
         assert db.count_anon_users() == 2
 
-    # TODO: add registered user
-
     # update
-
-    # TODO: register a guest user
-    # TODO: update registered user's pw
 
     # delete
 
@@ -115,7 +110,7 @@ class TestDaylist:
     def uid(cls, db, anon_user: bool = True):
         if anon_user:
             return db.add_anon_user()
-        return db.add_user()  # FIX
+        return db.add_user()  # BOOKMARK: handle real users
 
     # get
 
@@ -169,7 +164,7 @@ class TestDaylist:
         with pytest.raises(IntegrityError):
             db.add_daylist(user_id=uid, expiry=expiry_str)
 
-    @pytest.mark.parametrize("is_anon", [True])  # FIX: add registered user
+    @pytest.mark.parametrize("is_anon", [True])  # BOOKMARK: test with registered user
     def test_add_daylist(cls, db, is_anon):
         uid = cls.uid(db, is_anon)
         expiry_str = FUTURE_TIME
@@ -218,14 +213,14 @@ class TestTask:
             db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
             db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
         ]
-        # TODO: add done tasks when available
+        # BOOKMARK: add done tasks when available
 
         result = db.get_current_tasks(user_id=uid_with_list)
         result = list(result)
 
         # all tasks are returned
         assert len(result) == len(task_ids)
-        # TODO: results are in expected order
+        # BOOKMARK: results are in expected order
         assert task_ids == [task["id"] for task in result]
 
     def test_get_active_tasks_for_user_no_list(cls, db, uid):
@@ -259,7 +254,7 @@ class TestTask:
 
         # all tasks are returned
         assert len(result) == len(task_ids)
-        # TODO: results are in expected order
+        # BOOKMARK: results are in expected order
         assert task_ids == [task["id"] for task in result]
 
     def test_get_pending_tasks_for_user_no_list(cls, db, uid):

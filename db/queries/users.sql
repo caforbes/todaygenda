@@ -10,7 +10,7 @@ SELECT count(id) FROM users WHERE email IS NULL;
 
 -- :name get_user :one
 SELECT id FROM users WHERE id = :user_id;
--- TODO: test more with registered users
+-- BOOKMARK: test more with registered users
 
 -- :name get_anon_user :one
 SELECT id FROM users WHERE email IS NULL ORDER BY id DESC LIMIT 1;

@@ -18,7 +18,7 @@ SELECT t.id, t.title, t.estimate, t.status
             AND dl.expiry > now()
     ORDER BY status ASC, daylist_order ASC, finished_at ASC;
 -- TESTED
--- TODO: add testing after items may get reordered by updates
+-- BOOKMARK: add testing after items may get reordered by updates
 
 -- :name get_pending_tasks :many
 SELECT t.id, t.title, t.estimate
@@ -29,7 +29,7 @@ SELECT t.id, t.title, t.estimate
             AND status = 'pending'
     ORDER BY daylist_order ASC;
 -- TESTED
--- TODO: add testing after items may get reordered by updates
+-- BOOKMARK: add testing after items may get reordered by updates
 
 -- :name get_done_tasks :many
 SELECT t.id, t.title, t.estimate
@@ -39,7 +39,7 @@ SELECT t.id, t.title, t.estimate
             AND dl.expiry > now()
             AND status = 'done'
     ORDER BY finished_at ASC;
--- TODO: test this q
+-- BOOKMARK: test this q
 
 
 

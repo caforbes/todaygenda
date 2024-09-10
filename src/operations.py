@@ -15,12 +15,12 @@ def temp_get_or_make_todaylist() -> Daylist:
     # get this user - MVP just get the top user
     temp_user = DB.get_anon_user()
     if temp_user is None:
-        # TODO: add handling in api - 400 etc
+        # BOOKMARK: add handling in api - 400 etc
         raise ValueError("Attempt to retrieve user that does not exist.")
 
     uid = temp_user["id"]
     with DB.transaction():
-        # TODO: eventually, we should supply a userid from the current session
+        # BOOKMARK: eventually, we should supply a userid from the current session
         active_daylist = DB.get_active_daylist(user_id=uid)
 
         if active_daylist:

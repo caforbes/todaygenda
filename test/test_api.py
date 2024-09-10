@@ -24,7 +24,7 @@ def client(settings) -> TestClient:
 
 @pytest.fixture(autouse=True)
 def db_setup_teardown(db):
-    # TODO: need to make sure there is always a user even in a fresh environment
+    # BOOKMARK: need to make sure there is always a user even in a fresh environment
     # TODO: should add some unrelated data to make sure we don't return it
     for _ in range(2):
         db.add_anon_user()
@@ -75,7 +75,7 @@ def test_get_list_expired(client, db, temp_userid):
     db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
     db.add_task_to_list(daylist_id=old_list_id, title="second", estimate="PT20M")
     db.add_task_to_list(daylist_id=old_list_id, title="third", estimate="PT20M")
-    # TODO: a done task too
+    # BOOKMARK: a done task too
 
     response = client.get("/today")
     assert response.status_code == 200
@@ -101,7 +101,7 @@ def test_get_list_active(client, db, temp_userid):
         db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
         db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M"),
     ]
-    # TODO: add done tasks to this list too
+    # BOOKMARK: add done tasks to this list too
 
     response = client.get("/today")
     assert response.status_code == 200
@@ -136,7 +136,7 @@ def test_get_list_empty(client, db, temp_userid):
     assert data["done_tasks"] == []
 
 
-# TODO: GET today's timeline/agenda
+# GET today's timeline/agenda
 
 
 @pytest.mark.skip()
@@ -163,7 +163,7 @@ def test_get_agenda_expired(client, db, temp_userid):
     """An expired list exists for this user - agenda should be freshly created."""
     old_list_id = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
-    # TODO: a done task too
+    # BOOKMARK: a done task too
 
     response = client.get("/agenda")
     assert response.status_code == 200
@@ -208,7 +208,7 @@ def test_get_agenda_active(client, db, temp_userid):
         db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
         db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M"),
     ]
-    # TODO: add done tasks to this list too
+    # BOOKMARK: add done tasks to this list too
 
     response = client.get("/agenda")
     assert response.status_code == 200

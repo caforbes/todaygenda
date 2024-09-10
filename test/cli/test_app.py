@@ -47,7 +47,7 @@ def test_typical_userflow(storage, capsys):
 
 
 def test_list_expiry(storage):
-    past_expiry = dt.datetime.now() - dt.timedelta(days=10)
+    past_expiry = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)
     daylist = DaylistCLI(expiry=past_expiry)
     app.send_to_storage(daylist)
 
