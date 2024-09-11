@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
+import time
+from zoneinfo import ZoneInfo
 from functools import reduce
 import logging
 import math
@@ -17,9 +19,34 @@ def deltasum(deltas: list[timedelta]) -> timedelta:
     return reduce(lambda t1, t2: t1 + t2, deltas, timedelta())
 
 
-def next_midnight(tz: timezone = timezone.utc) -> datetime:
+def next_midnight(tz: str | tzinfo = timezone.utc) -> datetime:
+    """The next midnight time, given a certain timezone (default: UTC).
+
+    Examples (today is Jan 1, 2024):
+        next_midnight() ~> 'Jan 2, 2024 00:00:00+00:00'
+        next_midnight('utc') ~> 'Jan 2, 2024 00:00:00+00:00'
+        next_midnight(timezone.utc) ~> 'Jan 2, 2024 00:00:00+00:00'
+        next_midnight('MST') ~> 'Jan 2, 2024 00:00:00+07:00'
+        next_midnight('America/Los Angeles') ~> 'Jan 2, 2024 00:00:00+07:00'
+        next_midnight('system') ~> 'Jan 2, 2024 00:00:00+05:00' (your system time)
+    """
+    # convert input to a timezone
+    if isinstance(tz, str):
+        if tz == "utc":
+            tz = timezone.utc
+        elif tz == "system":
+            tz = system_tz()
+        else:
+            tz = ZoneInfo(tz)
+
+    # get next midnight at that zone
     midnight = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     return midnight + timedelta(days=1)
+
+
+def system_tz() -> tzinfo:
+    system_now = time.localtime()
+    return ZoneInfo(system_now.tm_zone)
 
 
 # String helpers
