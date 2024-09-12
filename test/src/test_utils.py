@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 import pytest
 
 import src.utils as utils
@@ -29,6 +29,30 @@ def test_next_midnight_custom(zone_param):
 def test_next_midnight_system():
     result = utils.next_midnight("system")
     assert result.tzinfo is not None
+
+
+@pytest.mark.parametrize(
+    "time_str, hrs, mins, tz_str",
+    [
+        ("04:04:04+04", 4, 4, "+04:00"),
+        ("05:05:05+05", 5, 5, "+05:00"),
+        ("06:06:06:123456+06", 6, 6, "+06:00"),
+    ],
+)
+def test_next_timepoint(time_str, hrs, mins, tz_str):
+    now = datetime.now(timezone.utc)
+    tm = time.fromisoformat(time_str)
+    result = utils.next_timepoint(tm)
+
+    assert result > now
+    assert result < (now + timedelta(days=1))
+
+    assert result.year == now.year
+    assert result.hour == hrs
+    assert result.minute == mins
+    assert result.second == 0
+    assert result.microsecond == 0
+    assert result.isoformat().endswith(tz_str)
 
 
 @pytest.mark.parametrize(

@@ -3,17 +3,20 @@
 Interacts with the test database.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app, configure
+from src.utils import system_tz
 
+
+LOCAL_TZ = system_tz()
 OLD_TIME_STR = "2022-02-22 00:00:00+05"
 OLD_TIME = datetime.fromisoformat(OLD_TIME_STR)
-FUTURE_TIME = datetime.now(timezone.utc) + timedelta(hours=12)
+FUTURE_TIME = datetime.now(LOCAL_TZ) + timedelta(hours=12)
 FUTURE_TIME_STR = FUTURE_TIME.isoformat()
-TZNOW = datetime.now(timezone.utc)
+TZNOW = datetime.now(LOCAL_TZ)
 
 
 @pytest.fixture(scope="module")
@@ -219,3 +222,56 @@ def test_get_agenda_active(client, db, temp_userid):
     assert data["past_expiry"] is False
     assert datetime.fromisoformat(data["finish"]) >= TZNOW
     assert datetime.fromisoformat(data["expiry"]) >= TZNOW
+
+
+# Test providing custom expiry for both endpoints
+
+
+@pytest.mark.parametrize("endpoint", ["/today", "/agenda"])
+def test_get_list_custom_expiry(client, endpoint):
+    """Create a new list that expires at a custom time."""
+    # provide custom expiry time
+    sample_time = time.fromisoformat("20:16:00+06:00")
+    sample_timestr = sample_time.isoformat()
+    params = {"expire": sample_timestr}
+
+    response = client.get(endpoint, params=params)
+    assert response.status_code == 200
+
+    data = response.json()
+    # new list's expiry time matches what was provided
+    result_expiry = datetime.fromisoformat(data["expiry"])
+    result_expiry_rezoned = result_expiry.astimezone(sample_time.tzinfo)
+    assert result_expiry_rezoned.hour == sample_time.hour
+    assert result_expiry_rezoned.minute == sample_time.minute
+
+
+@pytest.mark.parametrize("endpoint", ["/today", "/agenda"])
+def test_get_list_irrelevant_expiry(client, db, temp_userid, endpoint):
+    """An active list exists for this user - adding custom expiry has no effect."""
+    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    # provide custom expiry time
+    sample_time = time.fromisoformat("12:16:00+06:00")
+    sample_timestr = sample_time.isoformat()
+    params = {"expire": sample_timestr}
+
+    response = client.get(endpoint, params=params)
+    assert response.status_code == 200
+
+    data = response.json()
+    # return original list with original expiry, not custom expiry
+    assert data["expiry"] != sample_timestr
+    assert data["expiry"] == FUTURE_TIME_STR
+
+
+@pytest.mark.parametrize("endpoint", ["/today", "/agenda"])
+def test_get_list_expiry_no_tz(client, db, temp_userid, endpoint):
+    """Providing a custom expiry without timezone fails."""
+    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    # provide custom expiry time
+    sample_time = time.fromisoformat("12:16:00")
+    sample_timestr = sample_time.isoformat()
+    params = {"expire": sample_timestr}
+
+    response = client.get(endpoint, params=params)
+    assert response.status_code == 400

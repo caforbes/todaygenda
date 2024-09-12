@@ -1,16 +1,17 @@
 import datetime as dt
+from typing import Optional
 
 from config import get_settings
 from db.connect import query_connect
 from src.models import Daylist, Agenda, AgendaItem
-from src.utils import next_midnight
+from src.utils import next_midnight, next_timepoint
 
 
 SETTINGS = get_settings()
 DB = query_connect(SETTINGS.database_url)
 
 
-def temp_get_or_make_todaylist() -> Daylist:
+def temp_get_or_make_todaylist(user_expiry: Optional[dt.time] = None) -> Daylist:
     """Get or create an unexpired daylist for today, for a placeholder user."""
     # get this user - MVP just get the top user
     temp_user = DB.get_anon_user()
@@ -26,7 +27,12 @@ def temp_get_or_make_todaylist() -> Daylist:
         if active_daylist:
             active_daylist["pending_tasks"] = list(DB.get_pending_tasks(user_id=uid))
         else:
-            DB.add_daylist(user_id=uid, expiry=next_midnight())
+            # handle optional user-provided expiry time
+            if user_expiry:
+                set_expiry = next_timepoint(user_expiry)
+            else:
+                set_expiry = next_midnight("system")
+            DB.add_daylist(user_id=uid, expiry=set_expiry)
             active_daylist = DB.get_active_daylist(user_id=uid)
 
     return Daylist.model_validate(active_daylist)
