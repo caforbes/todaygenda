@@ -31,7 +31,7 @@ def temp_get_or_make_todaylist(user_expiry: Optional[dt.time] = None) -> Daylist
             if user_expiry:
                 set_expiry = next_timepoint(user_expiry)
             else:
-                set_expiry = next_midnight("system")
+                set_expiry = next_midnight("utc")
             DB.add_daylist(user_id=uid, expiry=set_expiry)
             active_daylist = DB.get_active_daylist(user_id=uid)
 
