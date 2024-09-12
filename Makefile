@@ -1,5 +1,5 @@
-default: typecheck format lint pytest
-testall: typecheck format lint build coverage
+default: typecheck format lint
+testall: default build coverage
 typecheck:
 	@mypy src --strict
 	@mypy api cli db
