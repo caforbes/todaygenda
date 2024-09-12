@@ -274,4 +274,4 @@ def test_get_list_expiry_no_tz(client, db, temp_userid, endpoint):
     params = {"expire": sample_timestr}
 
     response = client.get(endpoint, params=params)
-    assert response.status_code == 400
+    assert response.status_code == 422

@@ -46,7 +46,7 @@ def read_today(expire: Annotated[dt.time | None, user_expiry_type] = None) -> Da
     that will be used if a new list needs to be created today.
     """
     if expire and not expire.tzinfo:
-        raise HTTPException(status_code=400, detail="Timezone not provided.")
+        raise HTTPException(status_code=422, detail="Timezone must be provided.")
     return backend.temp_get_or_make_todaylist(expire)
 
 
@@ -59,7 +59,7 @@ def read_agenda(expire: Annotated[dt.time | None, user_expiry_type] = None) -> A
     expiration time that will be used if a new list needs to be created today.
     """
     if expire and not expire.tzinfo:
-        raise HTTPException(status_code=400, detail="Timezone not provided.")
+        raise HTTPException(status_code=422, detail="Timezone must be provided.")
     daylist = backend.temp_get_or_make_todaylist(expire)
     agenda = backend.build_agenda(daylist)
     return agenda
