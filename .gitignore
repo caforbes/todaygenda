@@ -59,3 +59,4 @@ venv.bak/
 
 # Temporary files
 db/local.json
+backup.sql

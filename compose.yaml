@@ -32,6 +32,3 @@ volumes:
 secrets:
   db-password:
     file: db/password.txt
-
-# TODO: add dbmate as new service and depends_on
-# can you login to that container and apply a migration?

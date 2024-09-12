@@ -1,14 +1,58 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta, timezone
 import pytest
 
 import src.utils as utils
 
 
-def test_next_midnight():
+def test_next_midnight_default():
     result = utils.next_midnight()
     assert result.hour == 0
     assert result.minute == 0
     assert result.second == 0
+    assert result.tzinfo == timezone.utc
+
+
+@pytest.mark.parametrize("zone_param", ["utc", timezone.utc])
+def test_next_midnight_utc(zone_param):
+    result = utils.next_midnight(zone_param)
+    assert result.tzinfo == timezone.utc
+    assert result.hour == 0
+    assert result.minute == 0
+
+
+@pytest.mark.parametrize("zone_param", ["MST", "America/Phoenix"])
+def test_next_midnight_custom(zone_param):
+    result = utils.next_midnight(zone_param)
+    assert result.isoformat().endswith("00:00:00-07:00")
+
+
+def test_next_midnight_system():
+    result = utils.next_midnight("system")
+    assert result.tzinfo is not None
+
+
+@pytest.mark.parametrize(
+    "time_str, hrs, mins, tz_str",
+    [
+        ("04:04:04+04", 4, 4, "+04:00"),
+        ("05:05:05+05", 5, 5, "+05:00"),
+        ("06:06:06:123456+06", 6, 6, "+06:00"),
+    ],
+)
+def test_next_timepoint(time_str, hrs, mins, tz_str):
+    now = datetime.now(timezone.utc)
+    tm = time.fromisoformat(time_str)
+    result = utils.next_timepoint(tm)
+
+    assert result > now
+    assert result < (now + timedelta(days=1))
+
+    assert result.year == now.year
+    assert result.hour == hrs
+    assert result.minute == mins
+    assert result.second == 0
+    assert result.microsecond == 0
+    assert result.isoformat().endswith(tz_str)
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field, model_validator
 
 from src import utils
@@ -14,6 +14,8 @@ class BaseHasMetadata(BaseModel):
 
 
 class TaskCLI(BaseHasMetadata, Task):
+    id: int = 0
+
     def estimatestr(self) -> str:
         """Task estimate as a string in format 1m / 2h / 1h20m."""
         return utils.duration_to_str(self.estimate)
@@ -54,7 +56,7 @@ class DaylistCLI(BaseHasMetadata, BaseDaylist):
 
     def is_expired(self) -> bool:
         """Check if the todolist is expired."""
-        return self.expiry < datetime.now()
+        return self.expiry < datetime.now(timezone.utc)
 
     def get_pending_task_at(self, index: int) -> TaskCLI:
         if index not in range(0, len(self.pending_tasks)):

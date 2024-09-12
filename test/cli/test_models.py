@@ -1,8 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 
 from src.models import TaskStatus
 from cli.models import TaskCLI, DaylistCLI
+
+TZNOW = datetime.now(timezone.utc)
 
 
 class TestTaskObject:
@@ -53,9 +55,9 @@ class TestDaylistObject:
     @pytest.mark.parametrize(
         "sample_datetime,expected",
         [
-            (datetime.now() + timedelta(hours=2), False),
-            (datetime.now() - timedelta(hours=2), True),
-            (datetime.now() - timedelta(days=1), True),
+            (TZNOW + timedelta(hours=2), False),
+            (TZNOW - timedelta(hours=2), True),
+            (TZNOW - timedelta(days=1), True),
         ],
     )
     def test_is_expired(self, sample_datetime, expected):

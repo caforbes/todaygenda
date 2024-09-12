@@ -9,7 +9,7 @@ from typing_extensions import Annotated
 
 from db.local import LOCAL_FILE
 from cli.models import DaylistCLI, TaskCLI
-from src.utils import PRETTY_DATE_FORMAT, duration_from_str
+from src.utils import PRETTY_DATE_FORMAT, duration_from_str, next_midnight
 
 
 # Setup
@@ -130,7 +130,7 @@ def send_to_storage(daylist: DaylistCLI) -> None:
 def reset_daylist() -> DaylistCLI:
     """Build a fresh daylist, with prompt as needed."""
     print("Building new list for today!")
-    return DaylistCLI()
+    return DaylistCLI(expiry=next_midnight("system"))
 
 
 def display_tasks(task_list: list[TaskCLI], start_time: dt.datetime) -> None:
