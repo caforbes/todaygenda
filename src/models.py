@@ -11,11 +11,9 @@ class TaskStatus(StrEnum):
     DONE = auto()
 
 
-class Task(BaseModel):
-    id: int
+class NewTask(BaseModel):
     title: Annotated[str, StringConstraints(min_length=1, max_length=200)]
     estimate: timedelta
-    status: TaskStatus = TaskStatus.PENDING
 
     @field_validator("estimate")
     @classmethod
@@ -32,6 +30,11 @@ class Task(BaseModel):
         if dur.total_seconds() <= 0:
             raise ValueError("Task must have a provided time estimate.")
         return dur
+
+
+class Task(NewTask):
+    id: int
+    status: TaskStatus = TaskStatus.PENDING
 
 
 class BaseDaylist(BaseModel):

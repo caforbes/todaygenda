@@ -5,7 +5,7 @@ import datetime as dt
 
 from config import Settings
 
-from src.models import Daylist, Agenda
+from src.models import Daylist, Agenda, NewTask, Task
 import src.operations as backend
 
 
@@ -45,9 +45,10 @@ def read_today(expire: Annotated[dt.time | None, user_expiry_type] = None) -> Da
     By default, expires at midnight UTC, or you can provide a custom expiration time
     that will be used if a new list needs to be created today.
     """
+    user_id = backend.validate_temp_user()
     if expire and not expire.tzinfo:
         raise HTTPException(status_code=422, detail="Timezone must be provided.")
-    return backend.temp_get_or_make_todaylist(expire)
+    return backend.get_or_make_todaylist(user_id, expire)
 
 
 @app.get("/agenda", summary="Read today's agenda")
@@ -58,8 +59,24 @@ def read_agenda(expire: Annotated[dt.time | None, user_expiry_type] = None) -> A
     the timeline exceeds the expiry time of today's list. You can provide a custom
     expiration time that will be used if a new list needs to be created today.
     """
+    user_id = backend.validate_temp_user()
     if expire and not expire.tzinfo:
         raise HTTPException(status_code=422, detail="Timezone must be provided.")
-    daylist = backend.temp_get_or_make_todaylist(expire)
+    daylist = backend.get_or_make_todaylist(user_id, expire)
     agenda = backend.build_agenda(daylist)
     return agenda
+
+
+@app.post("/task", summary="Add a new pending task")
+def create_task(task: NewTask) -> Task:
+    """
+    FIX: update docs - Read a timeline of what to do next.
+
+    Contains a timeline and indicates the overall finish time. Includes indications if
+    the timeline exceeds the expiry time of today's list. You can provide a custom
+    expiration time that will be used if a new list needs to be created today.
+    """
+    user_id = backend.validate_temp_user()
+    created_task = backend.create_task(user_id, task)
+    # FIX: what if no daylist exists = error handling
+    return created_task

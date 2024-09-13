@@ -3,7 +3,7 @@ from typing import Optional
 
 from config import get_settings
 from db.connect import query_connect
-from src.models import Daylist, Agenda, AgendaItem
+from src.models import Daylist, Agenda, AgendaItem, Task, NewTask
 from src.utils import next_midnight, next_timepoint
 
 
@@ -11,17 +11,17 @@ SETTINGS = get_settings()
 DB = query_connect(SETTINGS.database_url)
 
 
-def temp_get_or_make_todaylist(user_expiry: Optional[dt.time] = None) -> Daylist:
-    """Get or create an unexpired daylist for today, for a placeholder user."""
-    # get this user - MVP just get the top user
+def validate_temp_user() -> int:
+    # MVP return the top anonymous user
     temp_user = DB.get_anon_user()
     if temp_user is None:
-        # BOOKMARK: add handling in api - 400 etc
-        raise ValueError("Attempt to retrieve user that does not exist.")
+        raise ValueError("User not found")  # BOOKMARK: better validation later
+    return temp_user["id"]
 
-    uid = temp_user["id"]
+
+def get_or_make_todaylist(uid: int, user_expiry: Optional[dt.time] = None) -> Daylist:
+    """Get or create an unexpired daylist for today, for a placeholder user."""
     with DB.transaction():
-        # BOOKMARK: eventually, we should supply a userid from the current session
         active_daylist = DB.get_active_daylist(user_id=uid)
 
         if active_daylist:
@@ -57,3 +57,13 @@ def build_agenda(daylist: Daylist) -> Agenda:
         finish=timestamp,
         past_expiry=(timestamp > daylist.expiry),
     )
+
+
+def create_task(uid: int, task: NewTask) -> Task:
+    """Create a new task in the user's list and return it."""
+    with DB.transaction():
+        task_id = DB.add_task_for_user(
+            user_id=uid, title=task.title, estimate=task.estimate
+        )
+        new_task = DB.get_task(id=task_id)
+        return Task(**new_task)  # type: ignore
