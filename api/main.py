@@ -78,5 +78,6 @@ def create_task(task: NewTask) -> Task:
     """
     user_id = backend.validate_temp_user()
     created_task = backend.create_task(user_id, task)
-    # FIX: what if no daylist exists = error handling
+    if not created_task:
+        raise HTTPException(status_code=404, detail="No list - can't add a new task.")
     return created_task

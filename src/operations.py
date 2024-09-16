@@ -1,6 +1,8 @@
 import datetime as dt
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
+
 from config import get_settings
 from db.connect import query_connect
 from src.models import Daylist, Agenda, AgendaItem, Task, NewTask
@@ -59,11 +61,14 @@ def build_agenda(daylist: Daylist) -> Agenda:
     )
 
 
-def create_task(uid: int, task: NewTask) -> Task:
+def create_task(uid: int, task: NewTask) -> Task | None:
     """Create a new task in the user's list and return it."""
-    with DB.transaction():
-        task_id = DB.add_task_for_user(
-            user_id=uid, title=task.title, estimate=task.estimate
-        )
-        new_task = DB.get_task(id=task_id)
-        return Task(**new_task)  # type: ignore
+    try:
+        with DB.transaction():
+            task_id = DB.add_task_for_user(
+                user_id=uid, title=task.title, estimate=task.estimate
+            )
+            new_task = DB.get_task(id=task_id)
+            return Task(**new_task)  # type: ignore
+    except IntegrityError:
+        return None

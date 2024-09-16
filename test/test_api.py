@@ -275,3 +275,58 @@ def test_get_list_expiry_no_tz(client, db, temp_userid, endpoint):
 
     response = client.get(endpoint, params=params)
     assert response.status_code == 422
+
+
+# POST: add new task
+
+
+@pytest.mark.parametrize("prior_listsize", [0, 1])
+def test_post_task(client, db, temp_userid, prior_listsize):
+    """Create a new task for today's empty list."""
+    # a list already exists for this user
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    # have some tasks in the list already?
+    for _ in range(prior_listsize):
+        db.add_task_to_list(daylist_id=active_lid, title="some task", estimate="PT20M")
+
+    sample_name = "my new task"
+    sample_time = "PT1H15M"
+    input_data = {"title": sample_name, "estimate": sample_time}
+
+    response = client.post("/task", json=input_data)
+    assert response.status_code == 200
+
+    data = response.json()
+    # return new task info
+    assert "id" in data
+    assert data["title"] == sample_name
+    assert data["estimate"] == sample_time
+    # new task is in db
+    assert db.count_tasks(daylist_id=active_lid) == prior_listsize + 1
+
+
+@pytest.mark.parametrize(
+    "bad_task",
+    [
+        {},  # blank
+        {"title": "a" * 1000, "estimate": "PT20M"},  # title too long
+        {"title": "sample", "estimate": "P1DT20H"},  # estimate too long
+    ],
+)
+def test_post_task_invalid(client, db, temp_userid, bad_task):
+    """Can't create a task that fails basic validation."""
+    # a list already exists for this user
+    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+
+    response = client.post("/task", json=bad_task)
+    assert response.status_code == 422
+
+
+def test_post_task_no_list(client, db, temp_userid):
+    """Attempt to create a task but list does not exist yet."""
+    sample_name = "my new task"
+    sample_time = "PT1H15M"
+    input_data = {"title": sample_name, "estimate": sample_time}
+
+    response = client.post("/task", json=input_data)
+    assert response.status_code == 404
