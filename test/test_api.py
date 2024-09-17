@@ -275,6 +275,10 @@ def test_get_list_expiry_no_tz(client, db, temp_userid, endpoint):
 
     response = client.get(endpoint, params=params)
     assert response.status_code == 422
+    # has error message in correct schema
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
 
 
 # POST: add new task
@@ -320,6 +324,10 @@ def test_post_task_invalid(client, db, temp_userid, bad_task):
 
     response = client.post("/task", json=bad_task)
     assert response.status_code == 422
+    # has error message in correct schema
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
 
 
 def test_post_task_no_list(client, db, temp_userid):
@@ -330,3 +338,7 @@ def test_post_task_no_list(client, db, temp_userid):
 
     response = client.post("/task", json=input_data)
     assert response.status_code == 404
+    # has error message in correct schema
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]

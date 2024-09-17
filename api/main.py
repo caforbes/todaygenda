@@ -28,6 +28,10 @@ configure(app, backend.SETTINGS)
 user_expiry_type = Query(description="a timezone-aware ISO time string")
 
 
+def error_detail(msg: str, errtype: str = "custom") -> list[dict[str, str]]:
+    return [{"msg": msg, "type": errtype}]
+
+
 # Routes
 
 
@@ -51,7 +55,9 @@ def read_today(
     if expire and not expire.tzinfo:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Timezone must be provided.",
+            detail=error_detail(
+                "Expire time parameter must have a timezone.", errtype="time_parsing"
+            ),
         )
     created, daylist = backend.get_or_make_todaylist(user_id, expire)
     if created:
@@ -73,7 +79,9 @@ def read_agenda(
     if expire and not expire.tzinfo:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Timezone must be provided.",
+            detail=error_detail(
+                "Expire time parameter must have a timezone.", errtype="time_parsing"
+            ),
         )
     created, daylist = backend.get_or_make_todaylist(user_id, expire)
     if created:
@@ -86,18 +94,17 @@ def read_agenda(
     "/task", summary="Add a new pending task", status_code=status.HTTP_201_CREATED
 )
 def create_task(task: NewTask) -> Task:
-    """
-    FIX: update docs - Read a timeline of what to do next.
+    """Add a new task into your list for today.
 
-    Contains a timeline and indicates the overall finish time. Includes indications if
-    the timeline exceeds the expiry time of today's list. You can provide a custom
-    expiration time that will be used if a new list needs to be created today.
+    Provide new task details with a time estimate less than 24hours. Today's task list
+    must already exist for this to succeed. On a 404 failure, visit `/today` to set up
+    today's list.
     """
     user_id = backend.validate_temp_user()
     created_task = backend.create_task(user_id, task)
     if not created_task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No list - can't add a new task.",
+            detail=error_detail("No list exists - can't add a new task."),
         )
     return created_task
