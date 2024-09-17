@@ -21,8 +21,16 @@ def validate_temp_user() -> int:
     return temp_user["id"]
 
 
-def get_or_make_todaylist(uid: int, user_expiry: Optional[dt.time] = None) -> Daylist:
-    """Get or create an unexpired daylist for today, for a placeholder user."""
+def get_or_make_todaylist(
+    uid: int, user_expiry: Optional[dt.time] = None
+) -> tuple[bool, Daylist]:
+    """Get or create an unexpired daylist for today, for a placeholder user.
+
+    Returns a tuple:
+    - bool: does this function call create the list or merely get it?
+    - list: the list content
+    """
+    is_new = False
     with DB.transaction():
         active_daylist = DB.get_active_daylist(user_id=uid)
 
@@ -36,8 +44,9 @@ def get_or_make_todaylist(uid: int, user_expiry: Optional[dt.time] = None) -> Da
                 set_expiry = next_midnight("utc")
             DB.add_daylist(user_id=uid, expiry=set_expiry)
             active_daylist = DB.get_active_daylist(user_id=uid)
+            is_new = True
 
-    return Daylist.model_validate(active_daylist)
+    return (is_new, Daylist.model_validate(active_daylist))
 
 
 def build_agenda(daylist: Daylist) -> Agenda:

@@ -61,9 +61,9 @@ def test_get_list_no_user(client):
 
 
 def test_get_list_none(client):
-    """No previous list for this user."""
+    """No previous list for this user; create a new one."""
     response = client.get("/today")
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     assert data["id"] > 0
@@ -81,7 +81,7 @@ def test_get_list_expired(client, db, temp_userid):
     # BOOKMARK: a done task too
 
     response = client.get("/today")
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     # return newly created list without old info
@@ -152,7 +152,7 @@ def test_get_agenda_no_user(client):
 def test_get_agenda_none(client):
     """No previous list for this user, just returns empty agenda."""
     response = client.get("/agenda")
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     # empty agenda, no warning with finish time = now (prev minute)
@@ -163,13 +163,13 @@ def test_get_agenda_none(client):
 
 
 def test_get_agenda_expired(client, db, temp_userid):
-    """An expired list exists for this user - agenda should be freshly created."""
+    """An expired list exists for this user - list/agenda should be freshly created."""
     old_list_id = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
     # BOOKMARK: a done task too
 
     response = client.get("/agenda")
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     # new empty agenda, no warning with finish time = now (prev minute)
@@ -180,7 +180,7 @@ def test_get_agenda_expired(client, db, temp_userid):
 
 
 def test_get_agenda_empty(client, db, temp_userid):
-    """An active list with tasks exists for this user - return the agenda."""
+    """An active list exists for this user - return the agenda."""
     # current list but also old expired list
     old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
@@ -236,7 +236,7 @@ def test_get_list_custom_expiry(client, endpoint):
     params = {"expire": sample_timestr}
 
     response = client.get(endpoint, params=params)
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     # new list's expiry time matches what was provided
@@ -294,7 +294,7 @@ def test_post_task(client, db, temp_userid, prior_listsize):
     input_data = {"title": sample_name, "estimate": sample_time}
 
     response = client.post("/task", json=input_data)
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     # return new task info
