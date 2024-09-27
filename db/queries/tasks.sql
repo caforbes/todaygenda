@@ -98,7 +98,6 @@ UPDATE tasks
         updated_at = now()
     WHERE id = :id AND done;
 -- TESTED
--- TODO: add constraint that only done items can have finish time
 
 
 -- :name delete_task :affected

@@ -1,5 +1,6 @@
 -- migrate:up
 
+
 -- convert task status from enum to boolean
 ALTER TABLE tasks
     -- temp drop constraints
@@ -19,13 +20,27 @@ ALTER TABLE tasks
     ADD CONSTRAINT check_pending_tasks_ordered
         CHECK ( (daylist_order IS NOT NULL) OR (done = true) )
     ;
+
 -- delete status enum
 DROP TYPE IF EXISTS task_status;
 
+-- add constraints on finish time + done status
+ALTER TABLE tasks
+    ADD CONSTRAINT check_done_task_has_finishtime CHECK ( NOT done OR finished_at IS NOT NULL ),
+    ADD CONSTRAINT check_undone_task_no_finishtime CHECK ( done OR finished_at IS NULL );
+
+
 -- migrate:down
+
+
+-- drop finishtime constraints
+ALTER TABLE tasks
+    DROP CONSTRAINT check_done_task_has_finishtime,
+    DROP CONSTRAINT check_undone_task_no_finishtime;
 
 -- rebuild status enum
 CREATE TYPE task_status AS ENUM ('pending', 'done');
+
 -- revert done boolean to status enum
 ALTER TABLE tasks
     -- temp drop constraints

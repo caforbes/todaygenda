@@ -68,8 +68,10 @@ CREATE TABLE public.tasks (
     finished_at timestamp without time zone,
     daylist_id integer NOT NULL,
     daylist_order integer,
+    CONSTRAINT check_done_task_has_finishtime CHECK (((NOT done) OR (finished_at IS NOT NULL))),
     CONSTRAINT check_done_tasks_unordered CHECK (((daylist_order IS NULL) OR (done = false))),
-    CONSTRAINT check_pending_tasks_ordered CHECK (((daylist_order IS NOT NULL) OR (done = true)))
+    CONSTRAINT check_pending_tasks_ordered CHECK (((daylist_order IS NOT NULL) OR (done = true))),
+    CONSTRAINT check_undone_task_no_finishtime CHECK ((done OR (finished_at IS NULL)))
 );
 
 
