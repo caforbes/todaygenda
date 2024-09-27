@@ -5,19 +5,19 @@ SELECT count(id)
 -- TESTED
 
 -- :name get_task :one
-SELECT id, title, estimate, status
+SELECT id, title, estimate, done
     FROM tasks
     WHERE id = :id;
 -- TESTED
 -- BOOKMARK: need to validate permissions for whoever is getting
 
 -- :name get_current_tasks :many
-SELECT t.id, t.title, t.estimate, t.status
+SELECT t.id, t.title, t.estimate, t.done
     FROM tasks as t INNER JOIN daylists as dl
                     ON t.daylist_id = dl.id
     WHERE   dl.user_id = :user_id
             AND dl.expiry > now()
-    ORDER BY status ASC, daylist_order ASC, finished_at ASC;
+    ORDER BY done ASC, daylist_order ASC, finished_at ASC;
 -- TESTED
 -- BOOKMARK: add testing after items may get reordered by updates
 
@@ -27,7 +27,7 @@ SELECT t.id, t.title, t.estimate
                     ON t.daylist_id = dl.id
     WHERE   dl.user_id = :user_id
             AND dl.expiry > now()
-            AND status = 'pending'
+            AND NOT done
     ORDER BY daylist_order ASC;
 -- TESTED
 -- BOOKMARK: add testing after items may get reordered by updates
@@ -38,7 +38,7 @@ SELECT t.id, t.title, t.estimate
                     ON t.daylist_id = dl.id
     WHERE   dl.user_id = :user_id
             AND dl.expiry > now()
-            AND status = 'done'
+            AND done
     ORDER BY finished_at ASC;
 -- BOOKMARK: test this q
 

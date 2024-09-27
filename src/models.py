@@ -1,14 +1,8 @@
 from datetime import datetime, timedelta, timezone
-from enum import StrEnum, auto
 from pydantic import AwareDatetime, BaseModel, Field, StringConstraints, field_validator
 from typing_extensions import Annotated
 
 import src.utils as utils
-
-
-class TaskStatus(StrEnum):
-    PENDING = auto()
-    DONE = auto()
 
 
 class NewTask(BaseModel):
@@ -34,7 +28,7 @@ class NewTask(BaseModel):
 
 class Task(NewTask):
     id: int
-    status: TaskStatus = TaskStatus.PENDING
+    done: bool = False
 
 
 class BaseDaylist(BaseModel):

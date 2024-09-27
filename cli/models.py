@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field, model_validator
 
 from src import utils
-from src.models import BaseDaylist, Task, TaskStatus
+from src.models import BaseDaylist, Task
 
 
 class BaseHasMetadata(BaseModel):
@@ -22,7 +22,7 @@ class TaskCLI(BaseHasMetadata, Task):
 
     def mark_done(self):
         """Mark task as DONE."""
-        self.status = TaskStatus.DONE
+        self.done = True
         self.mark_updated()
 
 
@@ -32,10 +32,10 @@ class DaylistCLI(BaseHasMetadata, BaseDaylist):
 
     @model_validator(mode="after")
     def check_tasks_by_status(self):
-        if any(task.status != TaskStatus.PENDING for task in self.pending_tasks):
-            raise ValueError("Non-pending task found in list")
-        if any(task.status != TaskStatus.DONE for task in self.done_tasks):
-            raise ValueError("Non-done task found in list")
+        if any(task.done for task in self.pending_tasks):
+            raise ValueError("Done task found in pending list")
+        if not all(task.done for task in self.done_tasks):
+            raise ValueError("Pending task found in done list")
 
         self.pending_tasks = [
             TaskCLI(title=task.title, estimate=task.estimate)
@@ -78,7 +78,7 @@ class DaylistCLI(BaseHasMetadata, BaseDaylist):
     def complete_task(self, index: int):
         """Mark a pending task in the list as done."""
         target = self.get_pending_task_at(index)
-        target.mark_done()  # just drop task for now
+        target.mark_done()
         self.pending_tasks.remove(target)
         self.done_tasks.append(target)
         target.mark_updated()

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Iterable, Union
 
 UserDict = dict[str, int]
-TaskDict = dict[str, Union[str, int, timedelta]]
+TaskDict = dict[str, Union[str, int, timedelta, bool]]
 DaylistDict = dict[str, Union[int, datetime, list[TaskDict]]]
 
 class DBQueriesWrapper:

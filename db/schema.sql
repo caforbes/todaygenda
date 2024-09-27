@@ -9,16 +9,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Name: task_status; Type: TYPE; Schema: public; Owner: -
---
-
-CREATE TYPE public.task_status AS ENUM (
-    'pending',
-    'done'
-);
-
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -71,15 +61,15 @@ CREATE TABLE public.schema_migrations (
 CREATE TABLE public.tasks (
     id integer NOT NULL,
     title character varying(200) NOT NULL,
-    status public.task_status DEFAULT 'pending'::public.task_status NOT NULL,
+    done boolean DEFAULT false NOT NULL,
     estimate interval,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone,
     finished_at timestamp without time zone,
     daylist_id integer NOT NULL,
     daylist_order integer,
-    CONSTRAINT check_done_tasks_unordered CHECK (((daylist_order IS NULL) OR (status = 'pending'::public.task_status))),
-    CONSTRAINT check_pending_tasks_ordered CHECK (((daylist_order IS NOT NULL) OR (status = 'done'::public.task_status)))
+    CONSTRAINT check_done_tasks_unordered CHECK (((daylist_order IS NULL) OR (done = false))),
+    CONSTRAINT check_pending_tasks_ordered CHECK (((daylist_order IS NOT NULL) OR (done = true)))
 );
 
 
@@ -224,4 +214,5 @@ ALTER TABLE ONLY public.tasks
 INSERT INTO public.schema_migrations (version) VALUES
     ('20240824004320'),
     ('20240828065735'),
-    ('20240909225518');
+    ('20240909225518'),
+    ('20240926232413');

@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import pytest
 
-from src.models import TaskStatus
 from cli.models import TaskCLI, DaylistCLI
 
 TZNOW = datetime.now(timezone.utc)
@@ -11,9 +10,9 @@ class TestTaskObject:
     def test_mark_done(self):
         """Mark task as done and update its metadata."""
         task = TaskCLI(title="teststset", estimate=100)
-        assert task.status == TaskStatus.PENDING
+        assert not task.done
         task.mark_done()
-        assert task.status == TaskStatus.DONE
+        assert task.done
         assert task.created != task.updated
 
 
