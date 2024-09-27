@@ -40,7 +40,7 @@ SELECT t.id, t.title, t.estimate
             AND dl.expiry > now()
             AND done
     ORDER BY finished_at ASC;
--- BOOKMARK: test this q
+-- TODO: test this q
 
 
 
@@ -71,4 +71,36 @@ INSERT INTO tasks
     VALUES (:title, :estimate, :daylist_id,
             (SELECT max_order + 1 from last_row))
     RETURNING id;
+-- TESTED
+
+
+-- :name complete_task :affected
+UPDATE tasks
+    SET
+        done = true,
+        daylist_order = NULL,
+        finished_at = now(),
+        updated_at = now()
+    WHERE id = :id;
+-- TESTED
+
+-- :name uncomplete_task :affected
+WITH last_row (max_order) AS (
+    SELECT coalesce(max(daylist_order), 0)
+        FROM tasks
+        WHERE daylist_id = (SELECT daylist_id FROM tasks WHERE id=:id)
+)
+UPDATE tasks
+    SET
+        done = false,
+        daylist_order = (SELECT max_order + 1 FROM last_row),
+        finished_at = NULL,
+        updated_at = now()
+    WHERE id = :id;
+-- TESTED
+-- TODO: add constraint that only done items can have finish time
+
+
+-- :name delete_task :affected
+DELETE FROM tasks WHERE id = :id;
 -- TESTED

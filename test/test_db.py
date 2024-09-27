@@ -213,7 +213,7 @@ class TestTask:
             db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
             db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
         ]
-        # BOOKMARK: add done tasks when available
+        # TODO: add done tasks when available
 
         result = db.get_current_tasks(user_id=uid_with_list)
         result = list(result)
@@ -308,3 +308,70 @@ class TestTask:
         result = db.add_task_to_list(daylist_id=lid, title="second", estimate="PT1H5M")
         result = db.add_task_to_list(daylist_id=lid, title="third", estimate="PT1H5M")
         assert db.count_tasks(daylist_id=lid) == 3
+
+    # update
+
+    def test_complete_task(cls, db, lid):
+        new_id = db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M")
+        task = db.get_task(id=new_id)
+        assert task["done"] is False
+
+        result = db.complete_task(id=new_id)
+        assert result == 1
+
+        task = db.get_task(id=new_id)
+        assert task["done"] is True
+
+    def test_complete_task_useless(cls, db, lid):
+        new_id = db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M")
+        db.complete_task(id=new_id)
+
+        # still affect the task and update metadata
+        result = db.complete_task(id=new_id)
+        assert result == 1
+        task = db.get_task(id=new_id)
+        assert task["done"] is True
+
+    def test_complete_task_invalid(cls, db, lid):
+        result = db.complete_task(id=0)
+        assert result == 0
+
+    def test_uncomplete_task(cls, db, lid):
+        new_id = db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M")
+        db.complete_task(id=new_id)
+        initial_task = db.get_task(id=new_id)
+        assert initial_task["done"] is True
+
+        result = db.uncomplete_task(id=new_id)
+        assert result == 1
+
+        task = db.get_task(id=new_id)
+        assert task["done"] is False
+
+    def test_uncomplete_task_useless(cls, db, lid):
+        new_id = db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M")
+        initial_task = db.get_task(id=new_id)
+
+        result = db.uncomplete_task(id=new_id)
+        assert result == 1
+        after_task = db.get_task(id=new_id)
+        assert after_task["done"] is False
+        assert initial_task["done"] == after_task["done"]
+
+    def test_uncomplete_task_invalid(cls, db, lid):
+        result = db.uncomplete_task(id=0)
+        assert result == 0
+
+    # delete
+
+    def test_delete_task(cls, db, lid):
+        new_id = db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M")
+        assert db.count_tasks(daylist_id=lid) == 1
+
+        result = db.delete_task(id=new_id)
+        assert result == 1
+        assert db.count_tasks(daylist_id=lid) == 0
+
+    def test_delete_task_invalid(cls, db, lid):
+        result = db.delete_task(id=0)
+        assert result == 0
