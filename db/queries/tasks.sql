@@ -40,7 +40,7 @@ SELECT t.id, t.title, t.estimate
             AND dl.expiry > now()
             AND done
     ORDER BY finished_at ASC;
--- TODO: test this q
+-- TESTED
 
 
 
@@ -96,7 +96,7 @@ UPDATE tasks
         daylist_order = (SELECT max_order + 1 FROM last_row),
         finished_at = NULL,
         updated_at = now()
-    WHERE id = :id;
+    WHERE id = :id AND done;
 -- TESTED
 -- TODO: add constraint that only done items can have finish time
 

@@ -211,17 +211,40 @@ class TestTask:
         task_ids = [
             db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M"),
             db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
+        ]
+        done_ids = [
             db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
         ]
-        # TODO: add done tasks when available
+        for task_id in done_ids:
+            db.complete_task(id=task_id)
 
-        result = db.get_current_tasks(user_id=uid_with_list)
-        result = list(result)
+        result = list(db.get_current_tasks(user_id=uid_with_list))
 
         # all tasks are returned
-        assert len(result) == len(task_ids)
-        # BOOKMARK: results are in expected order
-        assert task_ids == [task["id"] for task in result]
+        expected_ids = task_ids + done_ids
+        assert len(result) == len(expected_ids)
+        assert expected_ids == [task["id"] for task in result]
+
+    def test_get_active_tasks_ordering(cls, db, uid_with_list):
+        task_ids = [
+            db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
+        ]
+        # BOOKMARK: add test that these are in order after editing might affect
+        done_ids = [
+            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+        ]
+        done_ids.reverse()  # check that finish time is different than add time
+        for task_id in done_ids:
+            db.complete_task(id=task_id)
+
+        result = list(db.get_current_tasks(user_id=uid_with_list))
+
+        # all tasks are returned
+        expected_ids = task_ids + done_ids
+        assert len(result) == len(expected_ids)
+        assert expected_ids == [task["id"] for task in result]
 
     def test_get_active_tasks_for_user_no_list(cls, db, uid):
         result = db.get_current_tasks(user_id=uid)
@@ -248,14 +271,21 @@ class TestTask:
             db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
             db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
         ]
+        done_ids = [
+            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+        ]
+        for task_id in done_ids:
+            db.complete_task(id=task_id)
 
         result = db.get_pending_tasks(user_id=uid_with_list)
         result = list(result)
 
-        # all tasks are returned
+        # only pending tasks are returned
         assert len(result) == len(task_ids)
-        # BOOKMARK: results are in expected order
         assert task_ids == [task["id"] for task in result]
+
+    # BOOKMARK: check ordering once editing is available
 
     def test_get_pending_tasks_for_user_no_list(cls, db, uid):
         result = db.get_pending_tasks(user_id=uid)
@@ -275,6 +305,43 @@ class TestTask:
         result = db.get_pending_tasks(user_id=uid)
         result = list(result)
         assert len(result) == 0
+
+    def test_get_done_tasks_for_user(cls, db, uid_with_list):
+        db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M")
+        extra = db.add_task_for_user(
+            user_id=uid_with_list, title="two", estimate="PT1H5M"
+        )
+        done_ids = [
+            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+            extra,
+        ]
+        for task_id in done_ids:
+            db.complete_task(id=task_id)
+
+        result = db.get_done_tasks(user_id=uid_with_list)
+        result = list(result)
+
+        # only done tasks are returned
+        assert len(result) == len(done_ids)
+        assert done_ids == [task["id"] for task in result]
+
+    def test_get_done_tasks_for_user_ordering(cls, db, uid_with_list):
+        done_ids = [
+            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid_with_list, title="fly", estimate="PT1H5M"),
+        ]
+        done_ids.reverse()  # finish time != creation time
+        for task_id in done_ids:
+            db.complete_task(id=task_id)
+
+        result = db.get_done_tasks(user_id=uid_with_list)
+        result = list(result)
+
+        # tasks in finish order not creation order
+        assert len(result) == len(done_ids)
+        assert done_ids == [task["id"] for task in result]
 
     # add
 
@@ -348,15 +415,32 @@ class TestTask:
         task = db.get_task(id=new_id)
         assert task["done"] is False
 
+    def test_uncomplete_task_end_of_list(cls, db, uid, lid):
+        tasks = [
+            db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M"),
+            db.add_task_to_list(daylist_id=lid, title="2", estimate="PT10M"),
+            db.add_task_to_list(daylist_id=lid, title="3", estimate="PT10M"),
+        ]
+        target = tasks[0]
+        db.complete_task(id=target)
+        initial_task = db.get_task(id=target)
+        assert initial_task["done"] is True
+
+        # task is affected, return num affected (=1)
+        result = db.uncomplete_task(id=target)
+        assert result == 1
+        # task is undone
+        task = db.get_task(id=target)
+        assert task["done"] is False
+        # task appears last in pending list
+        pending = list(db.get_pending_tasks(user_id=uid))
+        assert pending[-1]["id"] == target
+
     def test_uncomplete_task_useless(cls, db, lid):
         new_id = db.add_task_to_list(daylist_id=lid, title="tester", estimate="PT10M")
-        initial_task = db.get_task(id=new_id)
-
         result = db.uncomplete_task(id=new_id)
-        assert result == 1
-        after_task = db.get_task(id=new_id)
-        assert after_task["done"] is False
-        assert initial_task["done"] == after_task["done"]
+        # not affected
+        assert result == 0
 
     def test_uncomplete_task_invalid(cls, db, lid):
         result = db.uncomplete_task(id=0)
