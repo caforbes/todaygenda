@@ -1,5 +1,5 @@
 default: typecheck format lint
-testall: default build coverage
+prerelease: default build coverage
 typecheck:
 	@mypy src --strict
 	@mypy api cli db
@@ -21,16 +21,23 @@ build:
 	@echo "Checked requirements.txt!"
 cleartestdb:
 	@dbmate -e TEST_DATABASE_URL drop
-	@dbmate -e TEST_DATABASE_URL up
-testmigrate:
+	@dbmate --no-dump-schema -e TEST_DATABASE_URL up
+testmigrate: testmigrate-initial pytest
+testmigrate-initial:
 	@dbmate --no-dump-schema -e TEST_DATABASE_URL migrate
 	@dbmate --no-dump-schema -e TEST_DATABASE_URL rollback
-	@echo "Migration was successfully rolled back and re-migrated!"
-	@echo "Make sure to APPLY the migration next."
-testmigrate-local: backupdb
+	@echo "Test migration was successfully applied and rolled back."
+	@dbmate --no-dump-schema -e TEST_DATABASE_URL up
+	@echo "Test migration was applied."
+testmigrate-rollback:
+	@dbmate --no-dump-schema -e TEST_DATABASE_URL rollback
+migrate-initial: backupdb
+	@dbmate --no-dump-schema migrate
+	@dbmate --no-dump-schema rollback
+	@echo "Migration was successfully applied and rolled back."
+	@echo "Note: Migration was not permanently applied."
+migrate: migrate-initial
 	@dbmate migrate
-	@dbmate rollback
-	@echo "Migration was successfully rolled back and re-migrated!"
-	@echo "Make sure to APPLY the migration next."
+	@echo "Migration applied."
 backupdb:
 	pg_dump ${DATABASE_URL} > backup.sql

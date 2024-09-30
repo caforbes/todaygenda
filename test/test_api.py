@@ -74,11 +74,11 @@ def test_get_list_none(client):
 
 def test_get_list_expired(client, db, temp_userid):
     """An expired list exists for this user - make a new blank one."""
-    old_list_id = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
-    db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
-    db.add_task_to_list(daylist_id=old_list_id, title="second", estimate="PT20M")
-    db.add_task_to_list(daylist_id=old_list_id, title="third", estimate="PT20M")
-    # BOOKMARK: a done task too
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    db.add_task_to_list(daylist_id=old_lid, title="first", estimate="PT20M")
+    db.add_task_to_list(daylist_id=old_lid, title="second", estimate="PT20M")
+    done = db.add_task_to_list(daylist_id=old_lid, title="third", estimate="PT20M")
+    db.complete_task(id=done)
 
     response = client.get("/today")
     assert response.status_code == 201
@@ -86,25 +86,29 @@ def test_get_list_expired(client, db, temp_userid):
     data = response.json()
     # return newly created list without old info
     assert data["pending_tasks"] == []
-    assert data["pending_tasks"] == []
+    assert data["done_tasks"] == []
     assert datetime.fromisoformat(data["expiry"]) > TZNOW
     # definitely not the old list
-    assert data["id"] != old_list_id
+    assert data["id"] != old_lid
 
 
 def test_get_list_active(client, db, temp_userid):
     """An active list exists for this user - return it with nested tasks."""
-    # current list but also old expired list
+    # old expired list
     old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
 
+    # current list
     active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
     expected_pending = [
         db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
         db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
-        db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M"),
     ]
-    # BOOKMARK: add done tasks to this list too
+    expected_done = [
+        db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M")
+    ]
+    for task_id in expected_done:
+        db.complete_task(id=task_id)
 
     response = client.get("/today")
     assert response.status_code == 200
@@ -115,7 +119,7 @@ def test_get_list_active(client, db, temp_userid):
     assert datetime.fromisoformat(data["expiry"]) > TZNOW
     # return newly created list without old info
     assert [task["id"] for task in data["pending_tasks"]] == expected_pending
-    assert data["done_tasks"] == []  # add some
+    assert [task["id"] for task in data["done_tasks"]] == expected_done
 
 
 def test_get_list_empty(client, db, temp_userid):
@@ -125,7 +129,6 @@ def test_get_list_empty(client, db, temp_userid):
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
 
     active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
-    expected_pending = []
 
     response = client.get("/today")
     assert response.status_code == 200
@@ -134,8 +137,8 @@ def test_get_list_empty(client, db, temp_userid):
     # return unexpired list
     assert data["id"] == active_lid
     assert datetime.fromisoformat(data["expiry"]) > TZNOW
-    # return newly created list without old info
-    assert [task["id"] for task in data["pending_tasks"]] == expected_pending
+    # return blank created list without old info
+    assert data["pending_tasks"] == []
     assert data["done_tasks"] == []
 
 
@@ -164,9 +167,10 @@ def test_get_agenda_none(client):
 
 def test_get_agenda_expired(client, db, temp_userid):
     """An expired list exists for this user - list/agenda should be freshly created."""
-    old_list_id = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
-    db.add_task_to_list(daylist_id=old_list_id, title="first", estimate="PT20M")
-    # BOOKMARK: a done task too
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    db.add_task_to_list(daylist_id=old_lid, title="first", estimate="PT20M")
+    done = db.add_task_to_list(daylist_id=old_lid, title="done", estimate="PT20M")
+    db.complete_task(id=done)
 
     response = client.get("/agenda")
     assert response.status_code == 201
@@ -184,6 +188,8 @@ def test_get_agenda_empty(client, db, temp_userid):
     # current list but also old expired list
     old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
+    done = db.add_task_to_list(daylist_id=old_lid, title="done", estimate="PT20M")
+    db.complete_task(id=done)
 
     db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
     expected_pending = []
@@ -209,15 +215,18 @@ def test_get_agenda_active(client, db, temp_userid):
     expected_pending = [
         db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
         db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
-        db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M"),
     ]
-    # BOOKMARK: add done tasks to this list too
+    expected_done = [
+        db.add_task_to_list(daylist_id=active_lid, title="third", estimate="PT20M")
+    ]
+    for task_id in expected_done:
+        db.complete_task(id=task_id)
 
     response = client.get("/agenda")
     assert response.status_code == 200
 
     data = response.json()
-    # should contain the agenda for these items
+    # should contain the agenda for pending items only
     assert len(data["timeline"]) == len(expected_pending)
     assert data["past_expiry"] is False
     assert datetime.fromisoformat(data["finish"]) >= TZNOW
@@ -285,7 +294,7 @@ def test_get_list_expiry_no_tz(client, db, temp_userid, endpoint):
 
 
 @pytest.mark.parametrize("prior_listsize", [0, 1])
-def test_post_task(client, db, temp_userid, prior_listsize):
+def test_post_add_task(client, db, temp_userid, prior_listsize):
     """Create a new task for today's empty list."""
     # a list already exists for this user
     active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
@@ -317,7 +326,7 @@ def test_post_task(client, db, temp_userid, prior_listsize):
         {"title": "sample", "estimate": "P1DT20H"},  # estimate too long
     ],
 )
-def test_post_task_invalid(client, db, temp_userid, bad_task):
+def test_post_add_task_invalid(client, db, temp_userid, bad_task):
     """Can't create a task that fails basic validation."""
     # a list already exists for this user
     db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
@@ -330,7 +339,7 @@ def test_post_task_invalid(client, db, temp_userid, bad_task):
     assert "msg" in data["detail"][0]
 
 
-def test_post_task_no_list(client, db, temp_userid):
+def test_post_add_task_no_list(client, db, temp_userid):
     """Attempt to create a task but list does not exist yet."""
     sample_name = "my new task"
     sample_time = "PT1H15M"
@@ -342,3 +351,206 @@ def test_post_task_no_list(client, db, temp_userid):
     data = response.json()
     assert "detail" in data
     assert "msg" in data["detail"][0]
+
+
+# POST: mark task done
+
+
+@pytest.mark.parametrize("task_is_done", (True, False))
+def test_post_do_task(client, db, temp_userid, task_is_done):
+    """Mark a single task as done: both pending and done tasks work."""
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    name = "test"
+    time = "PT1H15M"
+    task_id = db.add_task_to_list(daylist_id=active_lid, title=name, estimate=time)
+    # works for tasks regardless of status
+    if task_is_done:
+        db.complete_task(id=task_id)
+
+    response = client.post(f"/task/{task_id}/do")
+    assert response.status_code == 200
+
+    data = response.json()
+    # return completion message
+    assert "success" in data
+    assert data["success"] == [task_id]
+    assert db.get_task(id=task_id)["done"] is True
+
+
+def test_post_do_task_none(client, db, temp_userid):
+    """Marking a task done but task doesn't exist."""
+    response = client.post("/task/0/do")
+    # validation error status
+    assert response.status_code == 422
+    # with error message in correct location
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
+
+
+def test_post_do_task_bad_list(client, db, temp_userid):
+    """Marking a task done but task is not in today's list."""
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    task_id = db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
+    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+
+    response = client.post(f"/task/{task_id}/do")
+    # validation error status
+    assert response.status_code == 422
+    # with error message in correct location
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
+
+
+# BOOKMARK: add api tests for bad user
+@pytest.mark.skip()
+def test_post_do_task_bad_user(client, db, temp_userid):
+    """Marking a task done but task is for a different user."""
+    # 422
+    pass
+
+
+# POST: bulk mark task done
+
+
+def test_post_bulk_do_tasks(client, db, temp_userid):
+    """Mark a list of multiple tasks as done."""
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    expected_pending = [
+        db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
+        db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
+    ]
+
+    response = client.post("/task/bulk/do", json=expected_pending)
+    assert response.status_code == 200
+
+    # return completion message
+    data = response.json()
+    assert "success" in data
+    assert data["success"] == expected_pending
+
+
+def test_post_bulk_do_tasks_bad_missing(client, db, temp_userid):
+    """Mark a list of tasks as done but one is invalid, doesn't exist."""
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    attempted_tasks = [
+        db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
+        0,
+    ]
+
+    response = client.post("/task", json=attempted_tasks)
+    # validation error status
+    assert response.status_code == 422
+    # with error message in correct location
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
+
+
+def test_post_bulk_do_tasks_bad_list(client, db, temp_userid):
+    """Mark a list of tasks as done but one is invalid, wrong list."""
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_task_id = db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    attempted_tasks = [
+        db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
+        old_task_id,
+    ]
+
+    response = client.post("/task", json=attempted_tasks)
+    # validation error status
+    assert response.status_code == 422
+    # with error message in correct location
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
+
+
+# BOOKMARK: add api tests for bad user
+@pytest.mark.skip()
+def test_post_bulk_do_tasks_bad_user(client, db, temp_userid):
+    """Marking list of tasks done but task is for a different user."""
+    # 422
+    # don't accept request unless all ids are good
+    # give a message with specific problem ids
+    pass
+
+
+# POST: undo task
+
+
+def test_post_undo_task(client, db, temp_userid):
+    """Mark a single done task as pending."""
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    name = "test"
+    time = "PT1H15M"
+    task_id = db.add_task_to_list(daylist_id=active_lid, title=name, estimate=time)
+    db.complete_task(id=task_id)
+
+    response = client.post(f"/task/{task_id}/undo")
+    assert response.status_code == 200
+
+    data = response.json()
+    # return completion message
+    assert "success" in data
+    assert data["success"] == [task_id]
+    assert db.get_task(id=task_id)["done"] is False
+
+
+def test_post_undo_task_pending(client, db, temp_userid):
+    """Mark a pending task as pending: no change."""
+    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    name = "test"
+    time = "PT1H15M"
+    task_id = db.add_task_to_list(daylist_id=active_lid, title=name, estimate=time)
+    db.add_task_to_list(daylist_id=active_lid, title="buffer", estimate=time)
+    initial_pending = list(db.get_pending_tasks(user_id=temp_userid))
+
+    response = client.post(f"/task/{task_id}/undo")
+    assert response.status_code == 200
+
+    data = response.json()
+    # return completion message
+    assert "success" in data
+    # task was not changed, not in result
+    assert data["success"] == []
+    # task is still pending
+    assert db.get_task(id=task_id)["done"] is False
+    # task list order is unaffected
+    final_pending = list(db.get_pending_tasks(user_id=temp_userid))
+    assert initial_pending == final_pending
+
+
+def test_post_undo_task_none(client, db, temp_userid):
+    """Marking a task pending but task doesn't exist."""
+    response = client.post("/task/0/undo")
+    # validation error status
+    assert response.status_code == 422
+    # with error message in correct location
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
+
+
+def test_post_undo_task_bad_list(client, db, temp_userid):
+    """Marking a task pending but task is not in today's list."""
+    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    task_id = db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
+    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+
+    response = client.post(f"/task/{task_id}/undo")
+    # validation error status
+    assert response.status_code == 422
+    # with error message in correct location
+    data = response.json()
+    assert "detail" in data
+    assert "msg" in data["detail"][0]
+
+
+# BOOKMARK: add api tests for bad user
+@pytest.mark.skip()
+def test_post_undo_task_bad_user(client, db, temp_userid):
+    """Marking a task pending but task is for a different user."""
+    # 422
+    pass

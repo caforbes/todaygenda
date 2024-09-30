@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from typing import Any, Iterable, Union
+from typing import Any, Generator, Union
 
 UserDict = dict[str, int]
-TaskDict = dict[str, Union[str, int, timedelta]]
+TaskDict = dict[str, Union[str, int, timedelta, bool]]
 DaylistDict = dict[str, Union[int, datetime, list[TaskDict]]]
 
 class DBQueriesWrapper:
@@ -33,25 +33,29 @@ class DBQueriesWrapper:
     def add_daylist(user_id: int, expiry: Union[str, datetime]) -> int: ...
 
     # Tasks
+    # read
     @staticmethod
     def count_tasks(daylist_id: int) -> int: ...
     @staticmethod
     def get_task(id: int) -> TaskDict | None: ...
     @staticmethod
-    def get_current_tasks(
-        user_id: int,
-    ) -> Iterable[TaskDict]: ...
+    def get_current_tasks(user_id: int) -> Generator[TaskDict, None, None]: ...
     @staticmethod
-    def get_pending_tasks(
-        user_id: int,
-    ) -> Iterable[TaskDict]: ...
+    def get_pending_tasks(user_id: int) -> Generator[TaskDict, None, None]: ...
     @staticmethod
-    def get_done_tasks(
-        user_id: int,
-    ) -> Iterable[TaskDict]: ...
+    def get_done_tasks(user_id: int) -> Generator[TaskDict, None, None]: ...
+    # create
     @staticmethod
     def add_task_for_user(user_id: int, title: str, estimate: timedelta) -> int: ...
     @staticmethod
     def add_task_to_list(daylist_id: int, title: str, estimate: timedelta) -> int: ...
+    # update
+    @staticmethod
+    def complete_task(id: int) -> int: ...
+    @staticmethod
+    def uncomplete_task(id: int) -> int: ...
+    # delete
+    @staticmethod
+    def delete_task(id: int) -> int: ...
 
 def query_connect(url: str) -> DBQueriesWrapper: ...

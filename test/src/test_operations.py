@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta, timezone
 
-from src.models import Daylist, Task, TaskStatus
+from src.models import Daylist, Task
 from src.operations import build_agenda
 
 TWENTY_M = timedelta(minutes=20)
@@ -24,9 +24,9 @@ def list_with_tasks() -> Daylist:
         Task(id=0, title="three", estimate=TWENTY_M),
     ]
     done_tasks = [
-        Task(id=0, title="done item one", estimate=TWENTY_M, status=TaskStatus.DONE),
-        Task(id=0, title="done item two", estimate=TWENTY_M, status=TaskStatus.DONE),
-        Task(id=0, title="done item three", estimate=TWENTY_M, status=TaskStatus.DONE),
+        Task(id=0, title="done item one", estimate=TWENTY_M, done=True),
+        Task(id=0, title="done item two", estimate=TWENTY_M, done=True),
+        Task(id=0, title="done item three", estimate=TWENTY_M, done=True),
     ]
     expiry = TZNOW + timedelta(hours=4)
     return Daylist(id=0, pending_tasks=todos, done_tasks=done_tasks, expiry=expiry)

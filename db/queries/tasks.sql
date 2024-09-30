@@ -5,19 +5,19 @@ SELECT count(id)
 -- TESTED
 
 -- :name get_task :one
-SELECT id, title, estimate, status
+SELECT id, title, estimate, done
     FROM tasks
     WHERE id = :id;
 -- TESTED
 -- BOOKMARK: need to validate permissions for whoever is getting
 
 -- :name get_current_tasks :many
-SELECT t.id, t.title, t.estimate, t.status
+SELECT t.id, t.title, t.estimate, t.done
     FROM tasks as t INNER JOIN daylists as dl
                     ON t.daylist_id = dl.id
     WHERE   dl.user_id = :user_id
             AND dl.expiry > now()
-    ORDER BY status ASC, daylist_order ASC, finished_at ASC;
+    ORDER BY done ASC, daylist_order ASC, finished_at ASC;
 -- TESTED
 -- BOOKMARK: add testing after items may get reordered by updates
 
@@ -27,7 +27,7 @@ SELECT t.id, t.title, t.estimate
                     ON t.daylist_id = dl.id
     WHERE   dl.user_id = :user_id
             AND dl.expiry > now()
-            AND status = 'pending'
+            AND NOT done
     ORDER BY daylist_order ASC;
 -- TESTED
 -- BOOKMARK: add testing after items may get reordered by updates
@@ -38,9 +38,9 @@ SELECT t.id, t.title, t.estimate
                     ON t.daylist_id = dl.id
     WHERE   dl.user_id = :user_id
             AND dl.expiry > now()
-            AND status = 'done'
+            AND done
     ORDER BY finished_at ASC;
--- BOOKMARK: test this q
+-- TESTED
 
 
 
@@ -71,4 +71,35 @@ INSERT INTO tasks
     VALUES (:title, :estimate, :daylist_id,
             (SELECT max_order + 1 from last_row))
     RETURNING id;
+-- TESTED
+
+
+-- :name complete_task :affected
+UPDATE tasks
+    SET
+        done = true,
+        daylist_order = NULL,
+        finished_at = now(),
+        updated_at = now()
+    WHERE id = :id;
+-- TESTED
+
+-- :name uncomplete_task :affected
+WITH last_row (max_order) AS (
+    SELECT coalesce(max(daylist_order), 0)
+        FROM tasks
+        WHERE daylist_id = (SELECT daylist_id FROM tasks WHERE id=:id)
+)
+UPDATE tasks
+    SET
+        done = false,
+        daylist_order = (SELECT max_order + 1 FROM last_row),
+        finished_at = NULL,
+        updated_at = now()
+    WHERE id = :id AND done;
+-- TESTED
+
+
+-- :name delete_task :affected
+DELETE FROM tasks WHERE id = :id;
 -- TESTED
