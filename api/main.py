@@ -5,7 +5,7 @@ import datetime as dt
 
 from config import Settings
 
-from src.models import Daylist, Agenda, NewTask, Task
+from src.models import ActionResult, Daylist, Agenda, NewTask, Task
 import src.operations as backend
 
 
@@ -26,6 +26,9 @@ configure(app, backend.SETTINGS)
 # Parameters
 
 user_expiry_type = Query(description="a timezone-aware ISO time string")
+
+
+# Helpers
 
 
 def error_detail(msg: str, errtype: str = "custom") -> list[dict[str, str]]:
@@ -108,3 +111,50 @@ def create_task(task: NewTask) -> Task:
             detail=error_detail("No list exists - can't add a new task."),
         )
     return created_task
+
+
+@app.post("/task/bulk/do", summary="Mark many tasks as done")
+def bulk_task_done(task_ids: list[int]) -> ActionResult:
+    """Mark a list of tasks from your list as done/completed in bulk."""
+    user_id = backend.validate_temp_user()
+    successful, result_ids = backend.mark_tasks_done(user_id, task_ids=task_ids)
+
+    if successful:
+        return ActionResult(success=result_ids)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_detail(
+                f"ERROR: Tasks not found in today's list: {result_ids}"
+            ),
+        )
+
+
+@app.post("/task/{id}/do", summary="Mark a task as done")
+def mark_task_done(id: int) -> ActionResult:
+    """Mark a task from your list as done/completed."""
+    user_id = backend.validate_temp_user()
+    successful, result_ids = backend.mark_tasks_done(user_id, task_ids=[id])
+
+    if successful:
+        return ActionResult(success=result_ids)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_detail(f"ERROR: Task not found in today's list: {result_ids}"),
+        )
+
+
+@app.post("/task/{id}/undo", summary="Mark a done task as pending")
+def mark_task_pending(id: int) -> ActionResult:
+    """Mark a done task from your list as pending. "Undo" the task."""
+    user_id = backend.validate_temp_user()
+    successful, result_ids = backend.mark_tasks_pending(user_id, task_ids=[id])
+
+    if successful:
+        return ActionResult(success=result_ids)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_detail(f"ERROR: Task not found in today's list: {result_ids}"),
+        )

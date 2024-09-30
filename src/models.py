@@ -61,3 +61,7 @@ class Agenda(BaseModel):
     finish: AwareDatetime
     expiry: AwareDatetime
     past_expiry: bool
+
+
+class ActionResult(BaseModel):
+    success: list[int] = []

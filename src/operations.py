@@ -36,6 +36,7 @@ def get_or_make_todaylist(
 
         if active_daylist:
             active_daylist["pending_tasks"] = list(DB.get_pending_tasks(user_id=uid))
+            active_daylist["done_tasks"] = list(DB.get_done_tasks(user_id=uid))
         else:
             # handle optional user-provided expiry time
             if user_expiry:
@@ -81,3 +82,49 @@ def create_task(uid: int, task: NewTask) -> Task | None:
             return Task(**new_task)  # type: ignore
     except IntegrityError:
         return None
+
+
+def mark_tasks_done(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]:
+    """Complete task(s) from user's list. Return success status and ids.
+
+    The returned tuple contains a boolean indicating if the operation succeeded.
+    * If successful, the returned ids are all the tasks now marked done.
+    * Otherwise, the returned ids indicate invalid task ids that could not be affected.
+    """
+    task_ids = set(task_ids)
+    with DB.transaction():
+        list_tasks = [task["id"] for task in DB.get_current_tasks(user_id=user_id)]
+
+        invalid_tasks = [id for id in task_ids if id not in list_tasks]
+        if invalid_tasks:
+            return (False, invalid_tasks)
+        else:
+            for task_id in task_ids:
+                DB.complete_task(id=task_id)
+            return (True, list(task_ids))
+
+
+def mark_tasks_pending(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]:
+    """Mark done task(s) from user's list as pending. Return success status and ids.
+
+    The returned tuple contains a boolean indicating if the operation succeeded.
+    * If successful, the returned ids are all the affected tasks now marked pending.
+    * Otherwise, the returned ids indicate invalid task ids that could not be affected.
+
+    Only 'done' tasks are affected by this action.
+    Already-pending tasks are valid input but are not affected.
+    """
+    task_ids = set(task_ids)
+    with DB.transaction():
+        list_tasks = {
+            task["id"]: task for task in DB.get_current_tasks(user_id=user_id)
+        }
+
+        invalid_tasks = [id for id in task_ids if id not in list_tasks.keys()]
+        if invalid_tasks:
+            return (False, invalid_tasks)
+        else:
+            done_tasks = [id for id in task_ids if list_tasks[id]["done"]]
+            for task_id in done_tasks:
+                DB.uncomplete_task(id=task_id)
+            return (True, done_tasks)
