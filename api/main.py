@@ -147,7 +147,7 @@ def mark_task_done(id: int) -> ActionResult:
 
 @app.post("/task/{id}/undo", summary="Mark a done task as pending")
 def mark_task_pending(id: int) -> ActionResult:
-    """Mark a done task from your list as pending. "Undo" the task."""
+    """Mark a done task from your list as pending."""
     user_id = backend.validate_temp_user()
     successful, result_ids = backend.mark_tasks_pending(user_id, task_ids=[id])
 

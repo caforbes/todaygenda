@@ -91,17 +91,17 @@ def mark_tasks_done(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]
     * If successful, the returned ids are all the tasks now marked done.
     * Otherwise, the returned ids indicate invalid task ids that could not be affected.
     """
-    task_ids = set(task_ids)
+    unique_task_ids = set(task_ids)
     with DB.transaction():
         list_tasks = [task["id"] for task in DB.get_current_tasks(user_id=user_id)]
 
-        invalid_tasks = [id for id in task_ids if id not in list_tasks]
+        invalid_tasks = [id for id in unique_task_ids if id not in list_tasks]
         if invalid_tasks:
             return (False, invalid_tasks)
         else:
-            for task_id in task_ids:
+            for task_id in unique_task_ids:
                 DB.complete_task(id=task_id)
-            return (True, list(task_ids))
+            return (True, list(unique_task_ids))
 
 
 def mark_tasks_pending(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]:
@@ -114,17 +114,17 @@ def mark_tasks_pending(user_id: int, task_ids: list[int]) -> tuple[bool, list[in
     Only 'done' tasks are affected by this action.
     Already-pending tasks are valid input but are not affected.
     """
-    task_ids = set(task_ids)
+    unique_task_ids = set(task_ids)
     with DB.transaction():
         list_tasks = {
             task["id"]: task for task in DB.get_current_tasks(user_id=user_id)
         }
 
-        invalid_tasks = [id for id in task_ids if id not in list_tasks.keys()]
+        invalid_tasks = [id for id in unique_task_ids if id not in list_tasks.keys()]
         if invalid_tasks:
             return (False, invalid_tasks)
         else:
-            done_tasks = [id for id in task_ids if list_tasks[id]["done"]]
+            done_tasks = [id for id in unique_task_ids if list_tasks[id]["done"]]
             for task_id in done_tasks:
                 DB.uncomplete_task(id=task_id)
             return (True, done_tasks)
