@@ -1,6 +1,8 @@
 import pytest
+from fastapi.testclient import TestClient
 
 from config import Settings, get_settings
+from api.main import app, configure
 from db.connect import DBQueriesWrapper, query_connect
 
 
@@ -16,3 +18,9 @@ def db(settings) -> DBQueriesWrapper:
     assert "test" in settings.database_url
     queries = query_connect(url=settings.database_url)
     return queries
+
+
+@pytest.fixture(scope="session")
+def client(settings) -> TestClient:
+    configure(app, settings=settings)
+    return TestClient(app)
