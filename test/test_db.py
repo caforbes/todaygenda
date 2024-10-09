@@ -16,6 +16,11 @@ def seed(db):
     userid = db.add_anon_user()
     db.add_daylist(user_id=userid, expiry="2014-02-14T00:00:00+05")
     db.add_daylist(user_id=userid, expiry="2024-07-24T00:00:00+05")
+
+    userid = db.add_registered_user(email="test@example.com", password_hash="12345")
+    db.add_daylist(user_id=userid, expiry="2022-03-14T00:00:00-04")
+    db.add_daylist(user_id=userid, expiry="2024-08-03T00:00:00+07")
+
     yield
 
 
@@ -43,33 +48,76 @@ class TestUsers:
     # get
     # Note: counts and get_anon_user are for TEST purposes
 
-    def test_anon_user_read_none(cls, db):
-        assert db.count_anon_users() == 0
+    @pytest.mark.parametrize(
+        "fn_string", ["count_users", "count_anon_users", "count_registered_users"]
+    )
+    def test_count_users_none(cls, db, fn_string):
+        count_function = getattr(db, fn_string)
+        assert count_function() == 0
 
+    @pytest.mark.parametrize(
+        "fn_string", ["count_users", "count_anon_users", "count_registered_users"]
+    )
+    def test_count_users_some(cls, db, seed, fn_string):
+        count_function = getattr(db, fn_string)
+        assert count_function() > 0
+
+    def test_read_any_anon_user_none(cls, db):
         result = db.get_anon_user()
-        # no user returns none
         assert result is None
 
-    def test_anon_user_read_some(cls, db, seed):
+    def test_read_any_anon_user(cls, db, seed):
+        # Note: returns random user; rest of app should get user by id or email
         assert db.count_anon_users() > 0
-
         result = db.get_anon_user()
         # good user returns dict of user attrs
         assert isinstance(result, dict)
         assert "id" in result and result["id"] > 0
 
-    # Note: rest of app should use get_user by id
-
-    def test_user_read_some(cls, db, seed):
+    def test_read_user_anon(cls, db, seed):
         uid = db.add_anon_user()
-        result = db.get_user(user_id=uid)
+        result = db.get_user(id=uid)
         # good user returns dict of user attrs
         assert isinstance(result, dict)
         assert "id" in result and result["id"] > 0
+        assert "email" in result and result["email"] is None
+        assert "password_hash" in result and result["password_hash"] is None
+
+    def test_read_user_reg(cls, db, seed):
+        test_value = "lalala"
+        uid = db.add_registered_user(email=test_value, password_hash=test_value)
+        result = db.get_user(id=uid)
+        # good user returns dict of user attrs
+        assert isinstance(result, dict)
+        assert "id" in result and result["id"] > 0
+        assert "email" in result and result["email"] == test_value
+        assert "password_hash" in result and result["password_hash"] == test_value
 
     def test_user_read_invalid(cls, db):
-        result = db.get_user(user_id=-1)
+        result = db.get_user(id=-1)
         # bad user returns none
+        assert result is None
+
+    def test_read_registered_user(cls, db, seed):
+        # values from seed data
+        test_email = "test@example.com"
+        test_pw = "12345"
+        result = db.get_registered_user(email=test_email)
+        # good user returns dict of user attrs
+        assert isinstance(result, dict)
+        # has requested values
+        assert "id" in result
+        assert "email" in result
+        assert "password_hash" in result
+        assert "registered_at" in result
+        # values are as expected
+        assert result["email"] == test_email
+        assert result["password_hash"] == test_pw
+        assert isinstance(result["registered_at"], datetime)
+
+    def test_read_registered_user_invalid(cls, db, seed):
+        result = db.get_registered_user(email="misc")
+        # bad user returns None
         assert result is None
 
     # add
@@ -84,17 +132,38 @@ class TestUsers:
         result = db.add_anon_user()
         assert db.count_anon_users() == 2
 
+    def test_add_registered_user(cls, db, seed):
+        test_email = "my@email.com"
+        test_pw = "hashyhash"
+        uid = db.add_registered_user(email=test_email, password_hash=test_pw)
+        # returns new user id
+        assert isinstance(uid, int)
+
+        result = db.get_user(id=uid)
+        # good user returns dict of user attrs
+        assert isinstance(result, dict)
+        # has requested values
+        assert "id" in result
+        assert "email" in result
+        assert "password_hash" in result
+        assert "registered_at" in result
+        # values are as expected
+        assert result["id"] == uid
+        assert result["email"] == test_email
+        assert result["password_hash"] == test_pw
+        assert isinstance(result["registered_at"], datetime)
+
     # update
 
     # delete
 
     def test_delete_user(cls, db, seed):
         uid = db.add_anon_user()
-        result = db.delete_user(user_id=uid)
+        result = db.delete_user(id=uid)
         assert result == 1
 
     def test_delete_user_invalid(cls, db):
-        result = db.delete_user(user_id=-1)
+        result = db.delete_user(id=-1)
         assert result == 0
 
     def test_delete_all_users(cls, db, seed):
