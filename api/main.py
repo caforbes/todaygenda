@@ -5,8 +5,8 @@ import datetime as dt
 
 from config import Settings
 
-from api.helpers import error_detail
-from api.routes import task
+from api.utils import error_detail
+from api.routes import auth, task
 from src.models import Daylist, Agenda
 import src.operations as backend
 
@@ -22,6 +22,7 @@ def configure(app: FastAPI, settings: Settings):
 
 
 app = FastAPI()
+app.include_router(auth.router)
 app.include_router(task.router)
 
 configure(app, backend.SETTINGS)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from api.helpers import error_detail
+from api.utils import error_detail
 from src.models import ActionResult, NewTask, Task
 import src.operations as backend
 

@@ -24,6 +24,7 @@ mypy = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-env = "*"
+pytest-mock = "*"
 docformatter = "*"
 
 [requires]
