@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     testing: bool = False
     allowed_origins: list[str] = []
     secret_key: str = "mysupersecrettestingkey"
+    guest_user_key: str = ""
     database_url: str = ""
     test_database_url: str = ""
 

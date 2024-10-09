@@ -4,13 +4,13 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 
 from config import get_settings
-from db.connect import query_connect
+from db.connect import query_connect, DBQueriesWrapper
 from src.models import Daylist, Agenda, AgendaItem, Task, NewTask
 from src.utils import next_midnight, next_timepoint
 
 
 SETTINGS = get_settings()
-DB = query_connect(SETTINGS.database_url)
+DB: DBQueriesWrapper = query_connect(SETTINGS.database_url)
 
 
 def validate_temp_user() -> int:

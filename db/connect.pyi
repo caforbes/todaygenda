@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Generator, Union
 
 AnonUserDict = dict[str, int]
-UserDict = dict[str, Union[str, int, datetime]]
+UserDict = dict[str, Union[str, int, datetime, None]]
 TaskDict = dict[str, Union[str, int, timedelta, bool]]
 DaylistDict = dict[str, Union[int, datetime, list[TaskDict]]]
 

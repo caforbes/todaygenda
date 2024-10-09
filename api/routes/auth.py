@@ -1,62 +1,45 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
-import logging
-from passlib.context import CryptContext
-import re
 
+from src.userauth import (
+    authenticate_user,
+    create_user,
+    create_guest_user,
+    fetch_user,
+    make_user_sub,
+)
 import src.operations as backend
 from src.models import User, UserFromDB, Token, TokenData
 
 
-# silence a passlib/bcrypt warning
-logging.getLogger("passlib").setLevel(logging.ERROR)
-
-
-router = APIRouter(prefix="/user")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/token")
-pw_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-ANON_PREFIX = "anon:"
-ANON_PATTERN = ANON_PREFIX + r"\d+"
 ALGORITHM = "HS256"  # FIX: use "ES256"
 ACCESS_TOKEN_EXPIRE_MINS = 30
 SECRET_KEY = backend.SETTINGS.secret_key
 
+router = APIRouter(prefix="/user")
 
-# Password handling
-
-
-def verify_password(text_password: str, hashed_password: str) -> bool:
-    return pw_context.verify(text_password, hashed_password)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/token")
 
 
-def hash_password(text_password: str) -> str:
-    return pw_context.hash(text_password)
+# Token/JWT handling
 
 
-# FIX: reference actual database
-db_users = {
-    "admin@example.com": {
-        "id": 1,
-        "email": "admin@example.com",
-        "password_hash": hash_password("sudo"),
-    }
-}
+def create_token(data: dict, expires_delta: timedelta | None = None):
+    data_to_encode = data.copy()
+    if expires_delta:
+        expiry = datetime.now(timezone.utc) + expires_delta
+    else:
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
+    data_to_encode.update({"exp": expiry})
 
-# User handling
+    encoded_jwt = jwt.encode(data_to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 
-def authenticate_user(user_email: str, pw: str) -> UserFromDB | None:
-    user = fetch_user(email=user_email)
-    if not user:
-        return None
-    if not verify_password(pw, user.password_hash):
-        return None
-    return user
+# Auth functions
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserFromDB:
@@ -77,10 +60,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserFromD
         raise credentials_exception
 
     # check if the user is registered or guest, retrieve them accordingly
-    if re.fullmatch(ANON_PATTERN, token_data.user_sub):
-        user = fetch_user(id=token_data.user_sub.strip(ANON_PREFIX))
-    else:
-        user = fetch_user(email=token_data.user_sub)
+    user = fetch_user(sub=token_data.user_sub)
 
     if user is None:
         raise credentials_exception
@@ -89,7 +69,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserFromD
     return user
 
 
-def get_current_known_user(
+def get_current_registered_user(
     current_user: Annotated[UserFromDB, Depends(get_current_user)]
 ) -> UserFromDB:
     if not current_user.email:
@@ -100,60 +80,54 @@ def get_current_known_user(
     return current_user
 
 
-def fetch_user(id: Optional[int] = None, email: Optional[str] = None) -> UserFromDB:
-    if email:
-        user_dict = db_users[email]
-        return UserFromDB(**user_dict)
-    elif id:
-        return UserFromDB(id=id)
-    raise ValueError("Requires id or email value")
-
-
-# Token/JWT handling
-
-
-def create_token(data: dict, expires_delta: timedelta | None = None):
-    data_to_encode = data.copy()
-    if expires_delta:
-        expiry = datetime.now(timezone.utc) + expires_delta
-    else:
-        expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
-    data_to_encode.update({"exp": expiry})
-
-    encoded_jwt = jwt.encode(data_to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
 # Routes
 
 
 @router.get("/", response_model=User)
 def read_user(current_user: Annotated[UserFromDB, Depends(get_current_user)]):
+    # TODO: test password NOT IN RESPONSE
     return current_user
 
 
 # TODO: signup endpoint
-def register_user():
+@router.post("/")
+def register_new_user(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> int:
+    new_uid = create_user(email=form_data.username, pw=form_data.password)
+    if not new_uid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or password details provided during registration",
+        )
+
+    # TODO: return auth???
+    # return login_token(form_data=form_data)
+    return new_uid
+
+
+# TODO: anonymous signup endpoint
+def populate_anon_user_creds():
     pass
 
 
 @router.post("/token")
-def login_for_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+def login_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
     bad_login_error = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Incorrect username or password",
     )
 
-    # validate credentials or create temp guest user
+    # validate credentials or create temp user
     if form_data.username == "anonymous":
-        # TODO: create new guest user in db
-        user = User(id=123)
-        user_sub = ANON_PREFIX + str(user.id)
+        user = create_guest_user(form_data)
     else:
         user = authenticate_user(user_email=form_data.username, pw=form_data.password)
-        if not user:
-            raise bad_login_error
-        user_sub = user.email
+
+    if not user:
+        raise bad_login_error
+
+    user_sub = make_user_sub(user)
 
     # build access token
     token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
