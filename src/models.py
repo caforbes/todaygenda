@@ -65,3 +65,25 @@ class Agenda(BaseModel):
 
 class ActionResult(BaseModel):
     success: list[int] = []
+
+
+# Auth
+
+
+class User(BaseModel):
+    id: int
+    email: str | None = None
+    registered_at: datetime | None = None
+
+
+class UserFromDB(User):
+    password_hash: str | None = None
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    user_sub: str

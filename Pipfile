@@ -12,6 +12,8 @@ typer = "*"
 pydantic-settings = "*"
 pugsql = "*"
 psycopg2-binary = "*"
+pyjwt = {extras = ["crypto"], version = "*"}
+passlib = {extras = ["bcrypt"], version = "*"}
 
 [dev-packages]
 black = "*"
