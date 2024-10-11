@@ -28,33 +28,40 @@ def test_user(db):
 # POST signup
 
 
-def test_signup(client):
+@pytest.mark.parametrize("grant_type", [True, False])
+def test_signup(client, grant_type):
     form_data = {
         "username": "jester@example.com",
         "password": "unicorn",
-        "grant_type": "password",
     }
+    if grant_type:
+        form_data["grant_type"] = "password"
+
     response = client.post("/user", data=form_data)
     assert response.status_code == 200
-    # TODO: return token instead?
+    data = response.json()
+    assert isinstance(data["access_token"], str)
+    assert data["token_type"] == "bearer"
 
 
 def test_signup_duplicate(client):
     form_data = {
         "username": "one@test.com",
-        "password": "123",
+        "password": "123456789",
         "grant_type": "password",
     }
     response = client.post("/user", data=form_data)
-    # TODO: check why this is 400 - is there correct db error handling
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
-def test_signup_invalid(client):
+@pytest.mark.parametrize(
+    "username,password", [("bad", "123456789"), ("someuser@example.com", "bad")]
+)
+def test_signup_invalid(client, username, password):
     form_data = {
-        "username": "username",  # should be an email
-        "password": "123",
+        "username": username,
+        "password": password,
         "grant_type": "password",
     }
     response = client.post("/user", data=form_data)
-    assert response.status_code == 400
+    assert response.status_code == 422

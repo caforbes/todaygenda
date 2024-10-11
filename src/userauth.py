@@ -52,15 +52,20 @@ def authenticate_user(user_email: str, pw: str) -> UserFromDB | None:
     return user
 
 
-def create_user(email: str, pw: str) -> int | None:
-    if (len(pw) < 6) or ("@" not in email):
-        # TODO: validate email properly
-        return None
+def acceptable_user_creds(email: str, pw: str) -> bool:
+    good_pw = len(pw) >= 6
+    # TODO: validate better
+    good_email = "@" in email
+    return good_pw and good_email
 
-    new_uid = backend.DB.add_registered_user(
-        email=email, password_hash=hash_password(pw)
-    )
-    return new_uid
+
+def create_user(email: str, pw: str) -> int | None:
+    # ensure username does not already exist
+    if not backend.DB.get_registered_user(email=email):
+        new_uid = backend.DB.add_registered_user(
+            email=email, password_hash=hash_password(pw)
+        )
+        return new_uid
 
 
 def create_guest_user(pw: str) -> UserFromDB | None:
