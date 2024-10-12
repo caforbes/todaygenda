@@ -26,6 +26,7 @@ pytest-cov = "*"
 pytest-env = "*"
 pytest-mock = "*"
 docformatter = "*"
+types-passlib = "*"
 
 [requires]
 python_version = "3.12"

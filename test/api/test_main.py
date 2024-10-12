@@ -12,7 +12,7 @@ from src.utils import system_tz
 LOCAL_TZ = system_tz()
 OLD_TIME_STR = "2022-02-22 00:00:00+05"
 OLD_TIME = datetime.fromisoformat(OLD_TIME_STR)
-FUTURE_TIME = datetime.now(LOCAL_TZ) + timedelta(hours=12)
+FUTURE_TIME = datetime.now(LOCAL_TZ) + timedelta(hours=23)
 FUTURE_TIME_STR = FUTURE_TIME.isoformat()
 TZNOW = datetime.now(LOCAL_TZ)
 # TODO: clean some of these up

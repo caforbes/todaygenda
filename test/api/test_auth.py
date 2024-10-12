@@ -1,6 +1,11 @@
+import logging
 import pytest
 
 from src.userauth import hash_password
+
+
+# silence a passlib/bcrypt warning
+logging.getLogger("passlib").setLevel(logging.ERROR)
 
 
 @pytest.fixture(autouse=True)
