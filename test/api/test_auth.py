@@ -18,7 +18,7 @@ def db_setup_teardown(db):
 
 @pytest.fixture()
 def test_user(db):
-    user_data = {"email": "sample@test.com", "password": "mypw123"}
+    user_data = {"email": "gandalf@fellowship.com", "password": "gthegrey"}
     db.add_registered_user(
         email=user_data["email"], password_hash=hash_password(user_data["password"])
     )
@@ -28,13 +28,13 @@ def test_user(db):
 # POST signup
 
 
-@pytest.mark.parametrize("grant_type", [True, False])
-def test_signup(client, grant_type):
+@pytest.mark.parametrize("has_grant_type", [True, False])
+def test_signup(client, has_grant_type):
     form_data = {
         "username": "jester@example.com",
         "password": "unicorn",
     }
-    if grant_type:
+    if has_grant_type:
         form_data["grant_type"] = "password"
 
     response = client.post("/user", data=form_data)
@@ -44,9 +44,9 @@ def test_signup(client, grant_type):
     assert data["token_type"] == "bearer"
 
 
-def test_signup_duplicate(client):
+def test_signup_duplicate(client, test_user):
     form_data = {
-        "username": "one@test.com",
+        "username": test_user["email"],
         "password": "123456789",
         "grant_type": "password",
     }
@@ -65,3 +65,61 @@ def test_signup_invalid(client, username, password):
     }
     response = client.post("/user", data=form_data)
     assert response.status_code == 422
+
+
+# POST login / get token
+
+
+@pytest.mark.parametrize("has_grant_type", [True, False])
+def test_login(client, test_user, has_grant_type):
+    form_data = {
+        "username": test_user["email"],
+        "password": test_user["password"],
+    }
+    if has_grant_type:
+        form_data["grant_type"] = "password"
+
+    response = client.post("/user/token", data=form_data)
+    assert response.status_code == 200
+    # get a token
+    data = response.json()
+    assert isinstance(data["access_token"], str)
+    assert data["token_type"] == "bearer"
+
+
+def test_login_bad_pw(client, test_user):
+    form_data = {
+        "username": test_user["email"],
+        "password": "wrong pwd",
+    }
+
+    response = client.post("/user/token", data=form_data)
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("username", ["nobody@email.com", "anonymous"])
+def test_login_not_a_user(client, username):
+    form_data = {
+        "username": username,
+        "password": "notapassword",
+    }
+
+    response = client.post("/user/token", data=form_data)
+    assert response.status_code == 401
+
+
+def test_login_as_guest(client, db, settings):
+    orig_users = db.count_anon_users()
+    form_data = {
+        "username": "anonymous",
+        "password": settings.guest_user_key,
+    }
+
+    response = client.post("/user/token", data=form_data)
+    assert response.status_code == 200
+    # get a token
+    data = response.json()
+    assert isinstance(data["access_token"], str)
+    assert data["token_type"] == "bearer"
+    # added a temp user
+    assert db.count_anon_users() == orig_users + 1

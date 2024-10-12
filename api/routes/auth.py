@@ -63,11 +63,9 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserFromD
 
     # check if the user is registered or guest, retrieve them accordingly
     user = fetch_user(sub=token_data.user_sub)
-
     if user is None:
         raise credentials_exception
 
-    # return user object
     return user
 
 
@@ -91,7 +89,6 @@ def read_user(current_user: Annotated[UserFromDB, Depends(get_current_user)]):
     return current_user
 
 
-# TODO: signup endpoint
 @router.post("/")
 def register_new_user(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
@@ -112,8 +109,18 @@ def register_new_user(
     return login_token(form_data)
 
 
-# TODO: anonymous signup endpoint
-def populate_anon_user_creds():
+# BOOKMARK: anonymous signup endpoint
+def populate_anon_user_creds(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends(get_current_user)]
+):
+    # ensure only guest users can do this (reg users should edit details differently)
+    if not acceptable_user_creds(email=form_data.username, pw=form_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_detail("Email or password did not meet requirements"),
+        )
+
+    # edit user to add credentials
     pass
 
 
@@ -121,7 +128,7 @@ def populate_anon_user_creds():
 def login_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
     # validate credentials or create temp user
     if form_data.username == "anonymous":
-        user = create_guest_user(form_data)
+        user = create_guest_user(pw=form_data.password)
     else:
         user = authenticate_user(user_email=form_data.username, pw=form_data.password)
 

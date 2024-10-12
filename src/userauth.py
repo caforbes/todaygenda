@@ -23,7 +23,7 @@ pw_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def fetch_user(
     id: Optional[int] = None, email: Optional[str] = None, sub: Optional[str] = None
-):
+) -> UserFromDB | None:
     if sub:
         # recursive branch
         if re.fullmatch(ANON_PATTERN, sub):
@@ -32,11 +32,13 @@ def fetch_user(
             return fetch_user(email=sub)
     elif email:
         user_dict = backend.DB.get_registered_user(email=email)
-        return UserFromDB(**user_dict)
     elif id:
         user_dict = backend.DB.get_user(id=id)
+    else:
+        raise ValueError("Requires id, email, or token sub value")
+
+    if user_dict:
         return UserFromDB(**user_dict)
-    raise ValueError("Requires id, email, or token sub value")
 
 
 def make_user_sub(user: User) -> str:
