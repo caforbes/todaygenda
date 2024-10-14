@@ -9,7 +9,7 @@ SELECT id, title, estimate, done
     FROM tasks
     WHERE id = :id;
 -- TESTED
--- BOOKMARK: need to validate permissions for whoever is getting
+-- note: does not validate permissions for whoever is getting - use only internally
 
 -- :name get_current_tasks :many
 SELECT t.id, t.title, t.estimate, t.done

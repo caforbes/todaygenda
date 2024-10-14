@@ -1,11 +1,6 @@
-import logging
 import pytest
 
 from src.userauth import hash_password
-
-
-# silence a passlib/bcrypt warning
-logging.getLogger("passlib").setLevel(logging.ERROR)
 
 
 @pytest.fixture(autouse=True)
@@ -21,13 +16,23 @@ def db_setup_teardown(db):
         db.delete_all_users()
 
 
-@pytest.fixture()
-def test_user(db):
-    user_data = {"email": "gandalf@fellowship.com", "password": "gthegrey"}
-    db.add_registered_user(
-        email=user_data["email"], password_hash=hash_password(user_data["password"])
-    )
-    return user_data
+# GET user
+
+
+def test_get_user(client, test_user, auth_headers):
+    # get token as this user
+    response = client.get("/user", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert data["email"] == test_user["email"]
+    assert "password_hash" not in data
+    assert "password" not in data
+
+
+def test_get_user_no_creds(client):
+    response = client.get("/user")
+    assert response.status_code == 401
 
 
 # POST signup

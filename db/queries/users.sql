@@ -48,7 +48,7 @@ UPDATE users
         password_hash = :password_hash,
         registered_at = now()
     WHERE id = :id;
--- TODO: test
+-- BOOKMARK: test
 
 
 

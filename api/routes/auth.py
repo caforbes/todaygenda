@@ -29,7 +29,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/token")
 # Token/JWT handling
 
 
-def create_token(data: dict, expires_delta: timedelta | None = None):
+def build_token_object(user: User) -> Token:
+    user_sub = make_user_sub(user)
+    token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
+    access_token = create_token(data={"sub": user_sub}, expires_delta=token_expires)
+    return Token(access_token=access_token, token_type="bearer")
+
+
+def create_token(data: dict, expires_delta: timedelta | None = None) -> str:
     data_to_encode = data.copy()
     if expires_delta:
         expiry = datetime.now(timezone.utc) + expires_delta
@@ -85,7 +92,6 @@ def get_current_registered_user(
 
 @router.get("/", response_model=User)
 def read_user(current_user: Annotated[UserFromDB, Depends(get_current_user)]):
-    # TODO: test password NOT IN RESPONSE
     return current_user
 
 
@@ -140,7 +146,4 @@ def login_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> T
         )
 
     # build access token
-    user_sub = make_user_sub(user)
-    token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
-    access_token = create_token(data={"sub": user_sub}, expires_delta=token_expires)
-    return Token(access_token=access_token, token_type="bearer")
+    return build_token_object(user=user)
