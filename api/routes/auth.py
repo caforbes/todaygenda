@@ -100,15 +100,21 @@ def get_current_registered_user(
 # Routes
 
 
-@router.get("/", response_model=User)
+@router.get("/", response_model=User, summary="Read user details")
 def read_user(current_user: Annotated[UserFromDB, Depends(get_current_user)]):
+    """Read details for the currently logged-in user."""
     return current_user
 
 
-@router.post("/")
+@router.post("/", summary="Sign up as a new user")
 def register_new_user(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
+    """Create a new user with by providing an email and password.
+
+    * `username`: Must be a valid email address not yet registered in the system
+    * `password`: Must be at least 6 characters
+    """
     if not acceptable_user_creds(email=form_data.username, pw=form_data.password):
         raise INSUFFICIENT_EMAIL_PW_ERROR
 
@@ -134,8 +140,13 @@ def populate_anon_user_creds(
     pass
 
 
-@router.post("/token")
+@router.post("/token", summary="Login to get an access token")
 def login_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
+    """Get an access token by logging in with email and password.
+
+    * `username`: Must be a valid email address registered on the system
+    * `password`: The password associated with this email account
+    """
     # validate credentials or create temp user
     if form_data.username == "anonymous":
         user = create_guest_user(pw=form_data.password)
