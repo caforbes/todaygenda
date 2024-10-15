@@ -39,13 +39,27 @@ def test_create_guest_user_bad(mocker):
     DB.add_anon_user.assert_not_called()
 
 
-def test_user_creds_ok():
-    result = acceptable_user_creds("admin@example.com", "myTestPwd123")
+@pytest.mark.parametrize(
+    "email,pw",
+    [
+        ("admin@example.com", "myTestPwd123"),
+        ("admin+123@example.com", "aaaaaaaaaaaaa"),
+    ],
+)
+def test_user_creds_ok(email, pw):
+    result = acceptable_user_creds(email, pw)
     assert result is True
 
 
 @pytest.mark.parametrize(
-    "email,pw", [("", ""), ("anonymous", "123456789"), ("test@test.com", "_")]
+    "email,pw",
+    [
+        ("", ""),
+        ("anonymous", "123456789"),
+        ("hello at email dot com", "123456789"),
+        ("email@hello,com", "123456789"),
+        ("test@test.com", "_"),
+    ],
 )
 def test_user_creds_invalid(email, pw):
     result = acceptable_user_creds(email, pw)

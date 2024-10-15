@@ -36,6 +36,19 @@ def test_get_user_no_creds(client):
     assert response.status_code == 401
 
 
+def test_get_user_bad_creds(client):
+    bad_headers = {"Authorization": "Bearer GARBAGETOKEN12343984523!@#!"}
+    response = client.get("/user", headers=bad_headers)
+    assert response.status_code == 401
+
+
+def test_get_user_deleted(client, db, known_user):
+    attempted_headers = auth_headers(known_user)
+    db.delete_all_users()
+    response = client.get("/user", headers=attempted_headers)
+    assert response.status_code == 401
+
+
 # POST signup
 
 
@@ -98,10 +111,11 @@ def test_login(client, known_user, has_grant_type):
     assert data["token_type"] == "bearer"
 
 
-def test_login_bad_pw(client, known_user):
+@pytest.mark.parametrize("bad_pw", ["wrong", "", None])
+def test_login_bad_pw(client, known_user, bad_pw):
     form_data = {
         "username": known_user["email"],
-        "password": "wrong pwd",
+        "password": bad_pw,
     }
 
     response = client.post("/user/token", data=form_data)

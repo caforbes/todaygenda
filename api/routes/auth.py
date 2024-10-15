@@ -48,6 +48,15 @@ def create_token(data: dict, expires_delta: timedelta | None = None) -> str:
     return encoded_jwt
 
 
+# Errors
+
+
+INSUFFICIENT_EMAIL_PW_ERROR = HTTPException(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail=error_detail("Email or password did not meet requirements"),
+)
+
+
 # Auth functions
 
 
@@ -76,6 +85,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserFromD
     return user
 
 
+# BOOKMARK: not in use yet
 def get_current_registered_user(
     current_user: Annotated[UserFromDB, Depends(get_current_user)]
 ) -> UserFromDB:
@@ -100,10 +110,7 @@ def register_new_user(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
     if not acceptable_user_creds(email=form_data.username, pw=form_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=error_detail("Email or password did not meet requirements"),
-        )
+        raise INSUFFICIENT_EMAIL_PW_ERROR
 
     new_uid = create_user(email=form_data.username, pw=form_data.password)
     if not new_uid:
@@ -121,10 +128,7 @@ def populate_anon_user_creds(
 ):
     # ensure only guest users can do this (reg users should edit details differently)
     if not acceptable_user_creds(email=form_data.username, pw=form_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=error_detail("Email or password did not meet requirements"),
-        )
+        raise INSUFFICIENT_EMAIL_PW_ERROR
 
     # edit user to add credentials
     pass

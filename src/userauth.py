@@ -58,10 +58,13 @@ def authenticate_user(user_email: str, pw: str | None) -> UserFromDB | None:
 
 
 def acceptable_user_creds(email: str, pw: str) -> bool:
+    """Provide very basic validation checks for email structure and pw length."""
+    email_pat = r"[^@\s]+@[^@\s]+\.[^@\s]+"  # general email structure: ___@__._
+    good_email = re.fullmatch(email_pat, email)
+
     good_pw = len(pw) >= 6
-    # TODO: validate better
-    good_email = "@" in email
-    return good_pw and good_email
+
+    return bool(good_email and good_pw)
 
 
 def create_user(email: str, pw: str) -> int | None:
