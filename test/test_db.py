@@ -9,6 +9,7 @@ import pytest
 
 FUTURE_TIME = "2122-02-22T00:00:00+05"
 OLD_TIME = "2020-02-20 00:00:00+05"
+TEST_EMAIL = "test@example.com"
 
 
 @pytest.fixture(autouse=True)
@@ -36,7 +37,7 @@ class TestUsers:
     @pytest.fixture()
     def seed(db):
         db.add_anon_user()
-        db.add_registered_user(email="test@example.com", password_hash="12345")
+        db.add_registered_user(email=TEST_EMAIL, password_hash="12345")
         yield
 
     # get
@@ -94,9 +95,8 @@ class TestUsers:
 
     def test_read_registered_user(cls, db, seed):
         # values from seed data
-        test_email = "test@example.com"
         test_pw = "12345"
-        result = db.get_registered_user(email=test_email)
+        result = db.get_registered_user(email=TEST_EMAIL)
         # good user returns dict of user attrs
         assert isinstance(result, dict)
         # has requested values
@@ -105,7 +105,7 @@ class TestUsers:
         assert "password_hash" in result
         assert "registered_at" in result
         # values are as expected
-        assert result["email"] == test_email
+        assert result["email"] == TEST_EMAIL
         assert result["password_hash"] == test_pw
         assert isinstance(result["registered_at"], datetime)
 
@@ -147,12 +147,61 @@ class TestUsers:
         assert result["password_hash"] == test_pw
         assert isinstance(result["registered_at"], datetime)
 
+    def test_add_registered_user_duplicate(cls, db, seed):
+        test_pw = "hashyhash"
+
+        with pytest.raises(IntegrityError):
+            db.add_registered_user(email=TEST_EMAIL, password_hash=test_pw)
+
     # update
+
+    def test_register_anon_user(cls, db, seed):
+        uid = db.get_anon_user()["id"]
+
+        sample_email = "gimli@gloin.com"
+        sample_hash = "123423409280349"
+
+        result = db.register_anon_user(
+            id=uid, email=sample_email, password_hash=sample_hash
+        )
+        assert result == 1
+        user = db.get_user(id=uid)
+        assert user["email"] == sample_email
+
+    def test_register_anon_user_invalid_known(cls, db, seed):
+        uid = db.get_registered_user(email=TEST_EMAIL)["id"]
+
+        result = db.register_anon_user(id=uid, email="new@email.com", password_hash="x")
+        assert result == 0
+        user = db.get_user(id=uid)
+        assert user["email"] == TEST_EMAIL
+
+    def test_register_anon_user_duplicate(cls, db, seed):
+        uid = db.get_anon_user()["id"]
+
+        with pytest.raises(IntegrityError):
+            db.register_anon_user(id=uid, email=TEST_EMAIL, password_hash="x")
+
+    def test_register_anon_user_bad_param(cls, db, seed):
+        uid = db.get_registered_user(email=TEST_EMAIL)["id"]
+
+        result = db.register_anon_user(
+            id=uid, email="new@email.com", password_hash=None
+        )
+
+        assert result == 0
+        user = db.get_user(id=uid)
+        assert user["email"] == TEST_EMAIL
 
     # delete
 
-    def test_delete_user(cls, db, seed):
-        uid = db.add_anon_user()
+    def test_delete_user_anon(cls, db, seed):
+        uid = db.get_anon_user()["id"]
+        result = db.delete_user(id=uid)
+        assert result == 1
+
+    def test_delete_user_known(cls, db, seed):
+        uid = db.get_registered_user(email=TEST_EMAIL)["id"]
         result = db.delete_user(id=uid)
         assert result == 1
 

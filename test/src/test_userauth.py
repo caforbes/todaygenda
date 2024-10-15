@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 import src
 from src.models import User
@@ -8,10 +9,12 @@ from src.userauth import (
     create_user,
     fetch_user,
     make_user_sub,
+    populate_guest_user,
 )
 import src.userauth
 
 DB = src.operations.DB
+DB_ERROR = IntegrityError("mock", "mock", "mock")
 
 
 @pytest.mark.parametrize("email,pw", [("test@test.com", "123456789")])
@@ -33,10 +36,25 @@ def test_create_guest_user(mocker, settings):
 
 
 def test_create_guest_user_bad(mocker):
-    mocker.patch("src.operations.DB.add_anon_user")
+    mocker.patch("src.operations.DB.add_anon_user", side_effect=DB_ERROR)
     result = create_guest_user(pw="wrong")
     assert result is None
-    DB.add_anon_user.assert_not_called()
+
+
+def test_populate_guest_user(mocker):
+    mocker.patch("src.operations.DB.register_anon_user", return_value=1)
+
+    result = populate_guest_user(User(id=123), email="e@mail.com", pw="secret")
+    DB.register_anon_user.assert_called()
+    assert result is True
+
+
+def test_populate_guest_user_duplicate(mocker):
+    mocker.patch("src.operations.DB.register_anon_user", side_effect=DB_ERROR)
+
+    result = populate_guest_user(User(id=123), email="e@mail.com", pw="secret")
+    DB.register_anon_user.assert_called()
+    assert result is False
 
 
 @pytest.mark.parametrize(

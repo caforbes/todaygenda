@@ -6,12 +6,12 @@ from test.helpers import auth_headers
 
 @pytest.fixture(autouse=True)
 def db_setup_teardown(db):
-    # There are always other unrelated users in the db
-    for _ in range(2):
+    try:
+        # There are always other unrelated users in the db
         db.add_anon_user()
         db.add_registered_user(email="one@test.com", password_hash=hash_password("1"))
         db.add_registered_user(email="two@test.com", password_hash=hash_password("2"))
-    try:
+
         yield
     finally:
         db.delete_all_users()
@@ -88,6 +88,76 @@ def test_signup_invalid(client, username, password):
         "grant_type": "password",
     }
     response = client.post("/user", data=form_data)
+    assert response.status_code == 422
+
+
+# POST signup
+
+
+@pytest.mark.parametrize("has_grant_type", [True, False])
+def test_add_creds(client, anon_user, has_grant_type):
+    form_data = {
+        "username": "jester@example.com",
+        "password": "unicorn",
+    }
+    if has_grant_type:
+        form_data["grant_type"] = "password"
+
+    response = client.post(
+        "/user/register", data=form_data, headers=auth_headers(anon_user)
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "success" in data
+    assert data["success"] == [anon_user["id"]]
+
+
+def test_add_creds_no_auth(client):
+    form_data = {
+        "username": "new@email.com",
+        "password": "123456789",
+        "grant_type": "password",
+    }
+    response = client.post("/user/register", data=form_data)
+    assert response.status_code == 401
+
+
+def test_add_creds_already_registered(client, known_user):
+    form_data = {
+        "username": "new@email.com",
+        "password": "123456789",
+        "grant_type": "password",
+    }
+    response = client.post(
+        "/user/register", data=form_data, headers=auth_headers(known_user)
+    )
+    assert response.status_code == 403
+
+
+def test_add_creds_duplicate(client, anon_user, known_user):
+    form_data = {
+        "username": known_user["email"],
+        "password": "123456789",
+        "grant_type": "password",
+    }
+    response = client.post(
+        "/user/register", data=form_data, headers=auth_headers(anon_user)
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "username,password", [("bad", "123456789"), ("someuser@example.com", "bad")]
+)
+def test_add_creds_invalid(client, anon_user, username, password):
+    form_data = {
+        "username": username,
+        "password": password,
+        "grant_type": "password",
+    }
+    response = client.post(
+        "/user/register", data=form_data, headers=auth_headers(anon_user)
+    )
     assert response.status_code == 422
 
 

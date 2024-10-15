@@ -174,6 +174,14 @@ ALTER TABLE ONLY public.tasks
 
 
 --
+-- Name: users unique_email; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT unique_email UNIQUE (email);
+
+
+--
 -- Name: tasks unique_task_order_in_daylist; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

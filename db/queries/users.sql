@@ -47,8 +47,8 @@ UPDATE users
     SET email = :email,
         password_hash = :password_hash,
         registered_at = now()
-    WHERE id = :id;
--- BOOKMARK: test
+    WHERE id = :id AND email IS NULL;
+-- TESTED
 
 
 

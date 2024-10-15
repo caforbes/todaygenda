@@ -12,9 +12,10 @@ from src.userauth import (
     create_guest_user,
     fetch_user,
     make_user_sub,
+    populate_guest_user,
 )
 import src.operations as backend
-from src.models import User, UserFromDB, Token, TokenData
+from src.models import ActionResult, User, UserFromDB, Token, TokenData
 
 
 ALGORITHM = "HS256"
@@ -55,6 +56,10 @@ INSUFFICIENT_EMAIL_PW_ERROR = HTTPException(
     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
     detail=error_detail("Email or password did not meet requirements"),
 )
+REGISTRATION_ERROR = HTTPException(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail=error_detail("Registration not processed: Email may already be in use"),
+)
 
 
 # Auth functions
@@ -85,14 +90,13 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserFromD
     return user
 
 
-# BOOKMARK: not in use yet
-def get_current_registered_user(
+def get_current_anon_user(
     current_user: Annotated[UserFromDB, Depends(get_current_user)]
 ) -> UserFromDB:
-    if not current_user.email:
+    if current_user.email:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=error_detail("This action requires full user registration"),
+            detail=error_detail("This action is restricted to guest users"),
         )
     return current_user
 
@@ -120,24 +124,34 @@ def register_new_user(
 
     new_uid = create_user(email=form_data.username, pw=form_data.password)
     if not new_uid:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=error_detail("Email already in use"),
-        )
+        raise REGISTRATION_ERROR
 
     return login_token(form_data)
 
 
-# BOOKMARK: anonymous signup endpoint
+@router.post("/register", summary="Sign up (for guest users)")
 def populate_anon_user_creds(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends(get_current_user)]
-):
+    current_user: Annotated[UserFromDB, Depends(get_current_anon_user)],
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> ActionResult:
+    """Guest users can create a permanent account by adding their email and password.
+
+    * `username`: Must be a valid email address not yet registered in the system
+    * `password`: Must be at least 6 characters
+
+    It's recommended that users request a new token after performing this operation.
+    """
+    creds_data = {"email": form_data.username, "pw": form_data.password}
     # ensure only guest users can do this (reg users should edit details differently)
-    if not acceptable_user_creds(email=form_data.username, pw=form_data.password):
+    if not acceptable_user_creds(**creds_data):
         raise INSUFFICIENT_EMAIL_PW_ERROR
 
     # edit user to add credentials
-    pass
+    result = populate_guest_user(current_user, **creds_data)
+    if not result:
+        raise REGISTRATION_ERROR
+
+    return ActionResult(success=[current_user.id])
 
 
 @router.post("/token", summary="Login to get an access token")

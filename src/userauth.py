@@ -1,5 +1,6 @@
 import logging
 from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError
 import re
 from typing import Optional
 
@@ -68,14 +69,14 @@ def acceptable_user_creds(email: str, pw: str) -> bool:
 
 
 def create_user(email: str, pw: str) -> int | None:
-    # ensure username does not already exist
-    if backend.DB.get_registered_user(email=email):
+    try:
+        new_uid = backend.DB.add_registered_user(
+            email=email, password_hash=hash_password(pw)
+        )
+        return new_uid
+    except IntegrityError:
+        # username already exists, or other error
         return None
-
-    new_uid = backend.DB.add_registered_user(
-        email=email, password_hash=hash_password(pw)
-    )
-    return new_uid
 
 
 def create_guest_user(pw: str) -> UserFromDB | None:
@@ -85,6 +86,17 @@ def create_guest_user(pw: str) -> UserFromDB | None:
 
     new_uid = backend.DB.add_anon_user()
     return fetch_user(id=new_uid)
+
+
+def populate_guest_user(user: User, email: str, pw: str) -> bool:
+    try:
+        num_affected = backend.DB.register_anon_user(
+            id=user.id, email=email, password_hash=hash_password(pw)
+        )
+        return num_affected == 1
+    except IntegrityError:
+        # username already exists, or other error
+        return False
 
 
 # Password helpers
