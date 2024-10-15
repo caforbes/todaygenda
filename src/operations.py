@@ -93,7 +93,7 @@ def mark_tasks_done(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]
         else:
             for task_id in unique_task_ids:
                 DB.complete_task(id=task_id)
-            return (True, list(unique_task_ids))
+            return (True, sorted(list(unique_task_ids)))
 
 
 def mark_tasks_pending(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]:
