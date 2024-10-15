@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import FastAPI, HTTPException, Query, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 import datetime as dt
 
@@ -7,7 +7,8 @@ from config import Settings
 
 from api.utils import error_detail
 from api.routes import auth, task
-from src.models import Daylist, Agenda
+from api.routes.auth import get_current_user
+from src.models import Daylist, Agenda, User
 import src.operations as backend
 
 
@@ -44,7 +45,9 @@ def read_root():
 
 @app.get("/today", summary="Read today's todo items")
 def read_today(
-    response: Response, expire: Annotated[dt.time | None, user_expiry_type] = None
+    current_user: Annotated[User, Depends(get_current_user)],
+    response: Response,
+    expire: Annotated[dt.time | None, user_expiry_type] = None,
 ) -> Daylist:
     """Read the current list of things to do today.
 
@@ -52,7 +55,6 @@ def read_today(
     By default, expires at midnight UTC, or you can provide a custom expiration time
     that will be used if a new list needs to be created today.
     """
-    user_id = backend.validate_temp_user()
     if expire and not expire.tzinfo:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -60,7 +62,7 @@ def read_today(
                 "Expire time parameter must have a timezone.", errtype="time_parsing"
             ),
         )
-    created, daylist = backend.get_or_make_todaylist(user_id, expire)
+    created, daylist = backend.get_or_make_todaylist(current_user.id, expire)
     if created:
         response.status_code = status.HTTP_201_CREATED
     return daylist
@@ -68,7 +70,9 @@ def read_today(
 
 @app.get("/agenda", summary="Read today's agenda")
 def read_agenda(
-    response: Response, expire: Annotated[dt.time | None, user_expiry_type] = None
+    current_user: Annotated[User, Depends(get_current_user)],
+    response: Response,
+    expire: Annotated[dt.time | None, user_expiry_type] = None,
 ) -> Agenda:
     """Read a timeline of what to do next.
 
@@ -76,7 +80,6 @@ def read_agenda(
     the timeline exceeds the expiry time of today's list. You can provide a custom
     expiration time that will be used if a new list needs to be created today.
     """
-    user_id = backend.validate_temp_user()
     if expire and not expire.tzinfo:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -84,7 +87,7 @@ def read_agenda(
                 "Expire time parameter must have a timezone.", errtype="time_parsing"
             ),
         )
-    created, daylist = backend.get_or_make_todaylist(user_id, expire)
+    created, daylist = backend.get_or_make_todaylist(current_user.id, expire)
     if created:
         response.status_code = status.HTTP_201_CREATED
     agenda = backend.build_agenda(daylist)

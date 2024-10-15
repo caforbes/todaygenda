@@ -13,14 +13,6 @@ SETTINGS = get_settings()
 DB: DBQueriesWrapper = query_connect(SETTINGS.database_url)
 
 
-def validate_temp_user() -> int:
-    # MVP return the top anonymous user
-    temp_user = DB.get_anon_user()
-    if temp_user is None:
-        raise ValueError("User not found")  # BOOKMARK: better validation later
-    return temp_user["id"]
-
-
 def get_or_make_todaylist(
     uid: int, user_expiry: Optional[dt.time] = None
 ) -> tuple[bool, Daylist]:

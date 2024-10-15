@@ -1,11 +1,10 @@
+from typing import Union
 import pytest
 from fastapi.testclient import TestClient
 
 from config import Settings, get_settings
 from api.main import app, configure
-from api.routes.auth import build_token_object
 from db.connect import DBQueriesWrapper, query_connect
-from src.models import User
 from src.userauth import hash_password
 
 
@@ -30,7 +29,7 @@ def client(settings) -> TestClient:
 
 
 @pytest.fixture()
-def test_user(db):
+def known_user(db) -> dict[str, Union[str, int]]:
     user_data = {"email": "gandalf@fellowship.com", "password": "gthegrey"}
     uid = db.add_registered_user(
         email=user_data["email"], password_hash=hash_password(user_data["password"])
@@ -40,8 +39,13 @@ def test_user(db):
 
 
 @pytest.fixture()
-def auth_headers(test_user):
-    user = User(**test_user)
-    token = build_token_object(user).access_token
-    headers = {"Authorization": f"Bearer {token}"}
-    return headers
+def anon_user(db) -> dict[str, int]:
+    user_data = {}
+    uid = db.add_anon_user()
+    user_data["id"] = uid
+    return user_data
+
+
+@pytest.fixture(params=["anon_user", "known_user"])
+def any_user(db, request) -> dict[str, int]:
+    return request.getfixturevalue(request.param)

@@ -7,6 +7,7 @@ from datetime import datetime, time, timedelta
 import pytest
 
 from src.utils import system_tz
+from test.helpers import auth_headers
 
 
 LOCAL_TZ = system_tz()
@@ -15,26 +16,27 @@ OLD_TIME = datetime.fromisoformat(OLD_TIME_STR)
 FUTURE_TIME = datetime.now(LOCAL_TZ) + timedelta(hours=23)
 FUTURE_TIME_STR = FUTURE_TIME.isoformat()
 TZNOW = datetime.now(LOCAL_TZ)
+SAMPLE_DUR = timedelta(minutes=20)
 # TODO: clean some of these up
 
 
 @pytest.fixture(autouse=True)
 def db_setup_teardown(db):
-    # BOOKMARK: need to make sure there is always a user even in a fresh environment
-    # TODO: should add some unrelated data to make sure we don't return it
-    for _ in range(2):
-        db.add_anon_user()
+    uid = db.add_anon_user()
+    lid = db.add_daylist(user_id=uid, expiry=OLD_TIME)
+    db.add_task_to_list(daylist_id=lid, title="test1", estimate=SAMPLE_DUR)
+    db.add_daylist(user_id=uid, expiry=FUTURE_TIME)
+    db.add_task_for_user(user_id=uid, title="test2", estimate=SAMPLE_DUR)
+    db.add_task_for_user(user_id=uid, title="test3", estimate=SAMPLE_DUR)
+
+    uid = db.add_registered_user(email="merry@lotr.com", password_hash="rohan")
+    db.add_daylist(user_id=uid, expiry=FUTURE_TIME)
+    db.add_task_for_user(user_id=uid, title="test4", estimate=SAMPLE_DUR)
+
     try:
         yield
     finally:
         db.delete_all_users()
-
-
-@pytest.fixture()
-def temp_userid(db):
-    """Currently we only use 1 user for everything."""
-    # TODO: change user handling in tests
-    return db.get_anon_user()["id"]
 
 
 # GET healthcheck
@@ -50,16 +52,15 @@ def test_get_root(client):
 # GET today's list
 
 
-@pytest.mark.skip()
 def test_get_list_no_user(client):
-    """User not found."""
+    """No authenticated user, no result"""
     response = client.get("/today")
-    assert response.status_code == 400  # or something
+    assert response.status_code == 401
 
 
-def test_get_list_none(client):
+def test_get_list_none(client, any_user):
     """No previous list for this user; create a new one."""
-    response = client.get("/today")
+    response = client.get("/today", headers=auth_headers(any_user))
     assert response.status_code == 201
 
     data = response.json()
@@ -69,15 +70,15 @@ def test_get_list_none(client):
     assert data["pending_tasks"] == []
 
 
-def test_get_list_expired(client, db, temp_userid):
+def test_get_list_expired(client, db, any_user):
     """An expired list exists for this user - make a new blank one."""
-    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_lid = db.add_daylist(user_id=any_user["id"], expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="first", estimate="PT20M")
     db.add_task_to_list(daylist_id=old_lid, title="second", estimate="PT20M")
     done = db.add_task_to_list(daylist_id=old_lid, title="third", estimate="PT20M")
     db.complete_task(id=done)
 
-    response = client.get("/today")
+    response = client.get("/today", headers=auth_headers(any_user))
     assert response.status_code == 201
 
     data = response.json()
@@ -89,14 +90,14 @@ def test_get_list_expired(client, db, temp_userid):
     assert data["id"] != old_lid
 
 
-def test_get_list_active(client, db, temp_userid):
+def test_get_list_active(client, db, any_user):
     """An active list exists for this user - return it with nested tasks."""
     # old expired list
-    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_lid = db.add_daylist(user_id=any_user["id"], expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
 
     # current list
-    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    active_lid = db.add_daylist(user_id=any_user["id"], expiry=FUTURE_TIME)
     expected_pending = [
         db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
         db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
@@ -107,7 +108,7 @@ def test_get_list_active(client, db, temp_userid):
     for task_id in expected_done:
         db.complete_task(id=task_id)
 
-    response = client.get("/today")
+    response = client.get("/today", headers=auth_headers(any_user))
     assert response.status_code == 200
 
     data = response.json()
@@ -119,15 +120,15 @@ def test_get_list_active(client, db, temp_userid):
     assert [task["id"] for task in data["done_tasks"]] == expected_done
 
 
-def test_get_list_empty(client, db, temp_userid):
+def test_get_list_empty(client, db, any_user):
     """An active list exists for this user - but has no tasks."""
     # current list but also old expired list
-    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_lid = db.add_daylist(user_id=any_user["id"], expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
 
-    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    active_lid = db.add_daylist(user_id=any_user["id"], expiry=FUTURE_TIME)
 
-    response = client.get("/today")
+    response = client.get("/today", headers=auth_headers(any_user))
     assert response.status_code == 200
 
     data = response.json()
@@ -142,16 +143,15 @@ def test_get_list_empty(client, db, temp_userid):
 # GET today's timeline/agenda
 
 
-@pytest.mark.skip()
 def test_get_agenda_no_user(client):
     """User not found."""
     response = client.get("/agenda")
-    assert response.status_code == 400  # or something
+    assert response.status_code == 401
 
 
-def test_get_agenda_none(client):
+def test_get_agenda_none(client, any_user):
     """No previous list for this user, just returns empty agenda."""
-    response = client.get("/agenda")
+    response = client.get("/agenda", headers=auth_headers(any_user))
     assert response.status_code == 201
 
     data = response.json()
@@ -162,14 +162,14 @@ def test_get_agenda_none(client):
     assert datetime.fromisoformat(data["expiry"]) >= TZNOW
 
 
-def test_get_agenda_expired(client, db, temp_userid):
+def test_get_agenda_expired(client, db, any_user):
     """An expired list exists for this user - list/agenda should be freshly created."""
-    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_lid = db.add_daylist(user_id=any_user["id"], expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="first", estimate="PT20M")
     done = db.add_task_to_list(daylist_id=old_lid, title="done", estimate="PT20M")
     db.complete_task(id=done)
 
-    response = client.get("/agenda")
+    response = client.get("/agenda", headers=auth_headers(any_user))
     assert response.status_code == 201
 
     data = response.json()
@@ -180,18 +180,18 @@ def test_get_agenda_expired(client, db, temp_userid):
     assert datetime.fromisoformat(data["expiry"]) >= TZNOW
 
 
-def test_get_agenda_empty(client, db, temp_userid):
+def test_get_agenda_empty(client, db, any_user):
     """An active list exists for this user - return the agenda."""
     # current list but also old expired list
-    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_lid = db.add_daylist(user_id=any_user["id"], expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
     done = db.add_task_to_list(daylist_id=old_lid, title="done", estimate="PT20M")
     db.complete_task(id=done)
 
-    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    db.add_daylist(user_id=any_user["id"], expiry=FUTURE_TIME)
     expected_pending = []
 
-    response = client.get("/agenda")
+    response = client.get("/agenda", headers=auth_headers(any_user))
     assert response.status_code == 200
 
     data = response.json()
@@ -202,13 +202,13 @@ def test_get_agenda_empty(client, db, temp_userid):
     assert datetime.fromisoformat(data["expiry"]) >= TZNOW
 
 
-def test_get_agenda_active(client, db, temp_userid):
+def test_get_agenda_active(client, db, any_user):
     """An active list exists for this user - return it with nested tasks."""
     # current list but also old expired list
-    old_lid = db.add_daylist(user_id=temp_userid, expiry=OLD_TIME)
+    old_lid = db.add_daylist(user_id=any_user["id"], expiry=OLD_TIME)
     db.add_task_to_list(daylist_id=old_lid, title="old", estimate="PT20M")
 
-    active_lid = db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    active_lid = db.add_daylist(user_id=any_user["id"], expiry=FUTURE_TIME)
     expected_pending = [
         db.add_task_to_list(daylist_id=active_lid, title="first", estimate="PT20M"),
         db.add_task_to_list(daylist_id=active_lid, title="second", estimate="PT20M"),
@@ -219,7 +219,7 @@ def test_get_agenda_active(client, db, temp_userid):
     for task_id in expected_done:
         db.complete_task(id=task_id)
 
-    response = client.get("/agenda")
+    response = client.get("/agenda", headers=auth_headers(any_user))
     assert response.status_code == 200
 
     data = response.json()
@@ -234,14 +234,14 @@ def test_get_agenda_active(client, db, temp_userid):
 
 
 @pytest.mark.parametrize("endpoint", ["/today", "/agenda"])
-def test_get_list_custom_expiry(client, endpoint):
+def test_get_list_custom_expiry(client, endpoint, anon_user):
     """Create a new list that expires at a custom time."""
     # provide custom expiry time
     sample_time = time.fromisoformat("20:16:00+06:00")
     sample_timestr = sample_time.isoformat()
     params = {"expire": sample_timestr}
 
-    response = client.get(endpoint, params=params)
+    response = client.get(endpoint, params=params, headers=auth_headers(anon_user))
     assert response.status_code == 201
 
     data = response.json()
@@ -253,15 +253,15 @@ def test_get_list_custom_expiry(client, endpoint):
 
 
 @pytest.mark.parametrize("endpoint", ["/today", "/agenda"])
-def test_get_list_irrelevant_expiry(client, db, temp_userid, endpoint):
+def test_get_list_irrelevant_expiry(client, db, endpoint, anon_user):
     """An active list exists for this user - adding custom expiry has no effect."""
-    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    db.add_daylist(user_id=anon_user["id"], expiry=FUTURE_TIME)
     # provide custom expiry time
     sample_time = time.fromisoformat("12:16:00+06:00")
     sample_timestr = sample_time.isoformat()
     params = {"expire": sample_timestr}
 
-    response = client.get(endpoint, params=params)
+    response = client.get(endpoint, params=params, headers=auth_headers(anon_user))
     assert response.status_code == 200
 
     data = response.json()
@@ -271,15 +271,15 @@ def test_get_list_irrelevant_expiry(client, db, temp_userid, endpoint):
 
 
 @pytest.mark.parametrize("endpoint", ["/today", "/agenda"])
-def test_get_list_expiry_no_tz(client, db, temp_userid, endpoint):
+def test_get_list_expiry_no_tz(client, db, endpoint, anon_user):
     """Providing a custom expiry without timezone fails."""
-    db.add_daylist(user_id=temp_userid, expiry=FUTURE_TIME)
+    db.add_daylist(user_id=anon_user["id"], expiry=FUTURE_TIME)
     # provide custom expiry time
     sample_time = time.fromisoformat("12:16:00")
     sample_timestr = sample_time.isoformat()
     params = {"expire": sample_timestr}
 
-    response = client.get(endpoint, params=params)
+    response = client.get(endpoint, params=params, headers=auth_headers(anon_user))
     assert response.status_code == 422
     # has error message in correct schema
     data = response.json()

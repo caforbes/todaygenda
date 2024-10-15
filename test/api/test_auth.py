@@ -1,6 +1,7 @@
 import pytest
 
 from src.userauth import hash_password
+from test.helpers import auth_headers
 
 
 @pytest.fixture(autouse=True)
@@ -19,13 +20,13 @@ def db_setup_teardown(db):
 # GET user
 
 
-def test_get_user(client, test_user, auth_headers):
+def test_get_user(client, known_user):
     # get token as this user
-    response = client.get("/user", headers=auth_headers)
+    response = client.get("/user", headers=auth_headers(known_user))
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
-    assert data["email"] == test_user["email"]
+    assert data["email"] == known_user["email"]
     assert "password_hash" not in data
     assert "password" not in data
 
@@ -54,9 +55,9 @@ def test_signup(client, has_grant_type):
     assert data["token_type"] == "bearer"
 
 
-def test_signup_duplicate(client, test_user):
+def test_signup_duplicate(client, known_user):
     form_data = {
-        "username": test_user["email"],
+        "username": known_user["email"],
         "password": "123456789",
         "grant_type": "password",
     }
@@ -81,10 +82,10 @@ def test_signup_invalid(client, username, password):
 
 
 @pytest.mark.parametrize("has_grant_type", [True, False])
-def test_login(client, test_user, has_grant_type):
+def test_login(client, known_user, has_grant_type):
     form_data = {
-        "username": test_user["email"],
-        "password": test_user["password"],
+        "username": known_user["email"],
+        "password": known_user["password"],
     }
     if has_grant_type:
         form_data["grant_type"] = "password"
@@ -97,9 +98,9 @@ def test_login(client, test_user, has_grant_type):
     assert data["token_type"] == "bearer"
 
 
-def test_login_bad_pw(client, test_user):
+def test_login_bad_pw(client, known_user):
     form_data = {
-        "username": test_user["email"],
+        "username": known_user["email"],
         "password": "wrong pwd",
     }
 
