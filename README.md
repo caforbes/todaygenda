@@ -63,6 +63,9 @@ This app allows you to create an agenda based on what you would like to accompli
 2. Environment variables should be setup in your `.env` file. (Use `docker.env` as a sample.)
     * `DATABASE_URL` and `TEST_DATABASE_URL`: Should be SQL connection strings with your credentials. Example: `postgresql://<USER>:<PW>@localhost:5432/todaygenda?sslmode=disable`
     * `ALLOWED_ORIGINS`: Should be a JSON string containing a list of origins that will be connecting. Example: `'["http://localhost:5173","https://www.example.com:5173"]'`
+    * `SECRET_KEY`: A key used for encoding user credentials. Currently supporting HS256.
+    * `GUEST_USER_KEY`: A password to create new guest user logins. Used by front-end applications that support guest user logins.
+
 3. Apply migrations. ([Get familiar with dbmate commands here.](https://github.com/amacneil/dbmate))
 
     ```sh
@@ -84,7 +87,7 @@ Some commands have been setup in the [Makefile](./Makefile) for helpful developm
 * Typecheck, format, lint: `make` or `make default`
 * Test: `make pytest`
 * Coverage report: `make coverage`
-* The whole shabang: `make testall`
+* The whole shabang: `make prerelease`
 
 ## Build: Docker
 
@@ -92,7 +95,7 @@ Some commands have been setup in the [Makefile](./Makefile) for helpful developm
 2. Edit the file `db/password.txt` with your preferred user password for the database. Update the password in your copy of the `docker.env` file.
     * You may also wish to update other environment variables in that file for your purposes.
 3. Run `docker compose up --build`. Confirm that the containers built successfully.
-4. Open a bash terminal in the container and run migrations. Migrations can be checked and run with `bin/dbmate`.
+4. Run migrations in the `server` container (via CLI or Docker Desktop). Migrations can be checked and run with `bin/dbmate`.
 
     ```sh
     docker-compose exec server bash

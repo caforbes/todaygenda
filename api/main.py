@@ -18,7 +18,13 @@ def configure(app: FastAPI, settings: Settings):
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
+        allow_headers=[
+            "Access-Control-Allow-Headers",
+            "Content-Type",
+            "Authorization",
+            "Access-Control-Allow-Origin",
+        ],
     )
 
 

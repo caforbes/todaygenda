@@ -19,7 +19,8 @@ from src.models import ActionResult, User, UserFromDB, Token, TokenData
 
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINS = 30
+ACCESS_TOKEN_GUEST_EXPIRE_MINS = 24 * 60
+ACCESS_TOKEN_EXPIRE_MINS = ACCESS_TOKEN_GUEST_EXPIRE_MINS * 7
 SECRET_KEY = backend.SETTINGS.secret_key
 
 router = APIRouter(prefix="/user")
@@ -32,7 +33,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/token")
 
 def build_token_object(user: User) -> Token:
     user_sub = make_user_sub(user)
-    token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
+    if user.email:
+        token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
+    else:
+        token_expires = timedelta(minutes=ACCESS_TOKEN_GUEST_EXPIRE_MINS)
     access_token = create_token(data={"sub": user_sub}, expires_delta=token_expires)
     return Token(access_token=access_token, token_type="bearer")
 
