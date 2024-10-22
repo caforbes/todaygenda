@@ -103,7 +103,8 @@ CREATE TABLE public.users (
     id integer NOT NULL,
     email character varying(254),
     password_hash character varying(100),
-    registered_at timestamp without time zone
+    registered_at timestamp without time zone,
+    CONSTRAINT check_registered_user_data CHECK ((((email IS NULL) AND (password_hash IS NULL) AND (registered_at IS NULL)) OR ((email IS NOT NULL) AND (password_hash IS NOT NULL) AND (registered_at IS NOT NULL))))
 );
 
 
@@ -173,6 +174,14 @@ ALTER TABLE ONLY public.tasks
 
 
 --
+-- Name: users unique_email; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT unique_email UNIQUE (email);
+
+
+--
 -- Name: tasks unique_task_order_in_daylist; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -217,4 +226,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20240824004320'),
     ('20240828065735'),
     ('20240909225518'),
-    ('20240926232413');
+    ('20240926232413'),
+    ('20241015180043');

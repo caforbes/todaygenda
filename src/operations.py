@@ -4,21 +4,13 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 
 from config import get_settings
-from db.connect import query_connect
+from db.connect import query_connect, DBQueriesWrapper
 from src.models import Daylist, Agenda, AgendaItem, Task, NewTask
 from src.utils import next_midnight, next_timepoint
 
 
 SETTINGS = get_settings()
-DB = query_connect(SETTINGS.database_url)
-
-
-def validate_temp_user() -> int:
-    # MVP return the top anonymous user
-    temp_user = DB.get_anon_user()
-    if temp_user is None:
-        raise ValueError("User not found")  # BOOKMARK: better validation later
-    return temp_user["id"]
+DB: DBQueriesWrapper = query_connect(SETTINGS.database_url)
 
 
 def get_or_make_todaylist(
@@ -101,7 +93,7 @@ def mark_tasks_done(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]
         else:
             for task_id in unique_task_ids:
                 DB.complete_task(id=task_id)
-            return (True, list(unique_task_ids))
+            return (True, sorted(list(unique_task_ids)))
 
 
 def mark_tasks_pending(user_id: int, task_ids: list[int]) -> tuple[bool, list[int]]:

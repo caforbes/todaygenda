@@ -9,14 +9,7 @@ import pytest
 
 FUTURE_TIME = "2122-02-22T00:00:00+05"
 OLD_TIME = "2020-02-20 00:00:00+05"
-
-
-@pytest.fixture()
-def seed(db):
-    userid = db.add_anon_user()
-    db.add_daylist(user_id=userid, expiry="2014-02-14T00:00:00+05")
-    db.add_daylist(user_id=userid, expiry="2024-07-24T00:00:00+05")
-    yield
+TEST_EMAIL = "test@example.com"
 
 
 @pytest.fixture(autouse=True)
@@ -40,36 +33,85 @@ def test_blank(db):
 
 class TestUsers:
 
+    @staticmethod
+    @pytest.fixture()
+    def seed(db):
+        db.add_anon_user()
+        db.add_registered_user(email=TEST_EMAIL, password_hash="12345")
+        yield
+
     # get
     # Note: counts and get_anon_user are for TEST purposes
 
-    def test_anon_user_read_none(cls, db):
-        assert db.count_anon_users() == 0
+    @pytest.mark.parametrize(
+        "fn_string", ["count_users", "count_anon_users", "count_registered_users"]
+    )
+    def test_count_users_none(cls, db, fn_string):
+        count_function = getattr(db, fn_string)
+        assert count_function() == 0
 
+    @pytest.mark.parametrize(
+        "fn_string", ["count_users", "count_anon_users", "count_registered_users"]
+    )
+    def test_count_users_some(cls, db, seed, fn_string):
+        count_function = getattr(db, fn_string)
+        assert count_function() > 0
+
+    def test_read_any_anon_user_none(cls, db):
         result = db.get_anon_user()
-        # no user returns none
         assert result is None
 
-    def test_anon_user_read_some(cls, db, seed):
+    def test_read_any_anon_user(cls, db, seed):
+        # Note: returns random user; rest of app should get user by id or email
         assert db.count_anon_users() > 0
-
         result = db.get_anon_user()
         # good user returns dict of user attrs
         assert isinstance(result, dict)
         assert "id" in result and result["id"] > 0
 
-    # Note: rest of app should use get_user by id
-
-    def test_user_read_some(cls, db, seed):
+    def test_read_user_anon(cls, db, seed):
         uid = db.add_anon_user()
-        result = db.get_user(user_id=uid)
+        result = db.get_user(id=uid)
         # good user returns dict of user attrs
         assert isinstance(result, dict)
         assert "id" in result and result["id"] > 0
+        assert "email" in result and result["email"] is None
+        assert "password_hash" in result and result["password_hash"] is None
+
+    def test_read_user_reg(cls, db, seed):
+        test_value = "lalala"
+        uid = db.add_registered_user(email=test_value, password_hash=test_value)
+        result = db.get_user(id=uid)
+        # good user returns dict of user attrs
+        assert isinstance(result, dict)
+        assert "id" in result and result["id"] > 0
+        assert "email" in result and result["email"] == test_value
+        assert "password_hash" in result and result["password_hash"] == test_value
 
     def test_user_read_invalid(cls, db):
-        result = db.get_user(user_id=-1)
+        result = db.get_user(id=-1)
         # bad user returns none
+        assert result is None
+
+    def test_read_registered_user(cls, db, seed):
+        # values from seed data
+        test_pw = "12345"
+        result = db.get_registered_user(email=TEST_EMAIL)
+        # good user returns dict of user attrs
+        assert isinstance(result, dict)
+        # has requested values
+        assert "id" in result
+        assert "email" in result
+        assert "password_hash" in result
+        assert "registered_at" in result
+        # values are as expected
+        assert result["email"] == TEST_EMAIL
+        assert result["password_hash"] == test_pw
+        assert isinstance(result["registered_at"], datetime)
+
+    def test_read_registered_user_invalid(cls, db, seed):
+        result = db.get_registered_user(email="misc")
+        # bad user returns None
         assert result is None
 
     # add
@@ -84,17 +126,87 @@ class TestUsers:
         result = db.add_anon_user()
         assert db.count_anon_users() == 2
 
+    def test_add_registered_user(cls, db, seed):
+        test_email = "my@email.com"
+        test_pw = "hashyhash"
+        uid = db.add_registered_user(email=test_email, password_hash=test_pw)
+        # returns new user id
+        assert isinstance(uid, int)
+
+        result = db.get_user(id=uid)
+        # good user returns dict of user attrs
+        assert isinstance(result, dict)
+        # has requested values
+        assert "id" in result
+        assert "email" in result
+        assert "password_hash" in result
+        assert "registered_at" in result
+        # values are as expected
+        assert result["id"] == uid
+        assert result["email"] == test_email
+        assert result["password_hash"] == test_pw
+        assert isinstance(result["registered_at"], datetime)
+
+    def test_add_registered_user_duplicate(cls, db, seed):
+        test_pw = "hashyhash"
+
+        with pytest.raises(IntegrityError):
+            db.add_registered_user(email=TEST_EMAIL, password_hash=test_pw)
+
     # update
+
+    def test_register_anon_user(cls, db, seed):
+        uid = db.get_anon_user()["id"]
+
+        sample_email = "gimli@gloin.com"
+        sample_hash = "123423409280349"
+
+        result = db.register_anon_user(
+            id=uid, email=sample_email, password_hash=sample_hash
+        )
+        assert result == 1
+        user = db.get_user(id=uid)
+        assert user["email"] == sample_email
+
+    def test_register_anon_user_invalid_known(cls, db, seed):
+        uid = db.get_registered_user(email=TEST_EMAIL)["id"]
+
+        result = db.register_anon_user(id=uid, email="new@email.com", password_hash="x")
+        assert result == 0
+        user = db.get_user(id=uid)
+        assert user["email"] == TEST_EMAIL
+
+    def test_register_anon_user_duplicate(cls, db, seed):
+        uid = db.get_anon_user()["id"]
+
+        with pytest.raises(IntegrityError):
+            db.register_anon_user(id=uid, email=TEST_EMAIL, password_hash="x")
+
+    def test_register_anon_user_bad_param(cls, db, seed):
+        uid = db.get_registered_user(email=TEST_EMAIL)["id"]
+
+        result = db.register_anon_user(
+            id=uid, email="new@email.com", password_hash=None
+        )
+
+        assert result == 0
+        user = db.get_user(id=uid)
+        assert user["email"] == TEST_EMAIL
 
     # delete
 
-    def test_delete_user(cls, db, seed):
-        uid = db.add_anon_user()
-        result = db.delete_user(user_id=uid)
+    def test_delete_user_anon(cls, db, seed):
+        uid = db.get_anon_user()["id"]
+        result = db.delete_user(id=uid)
+        assert result == 1
+
+    def test_delete_user_known(cls, db, seed):
+        uid = db.get_registered_user(email=TEST_EMAIL)["id"]
+        result = db.delete_user(id=uid)
         assert result == 1
 
     def test_delete_user_invalid(cls, db):
-        result = db.delete_user(user_id=-1)
+        result = db.delete_user(id=-1)
         assert result == 0
 
     def test_delete_all_users(cls, db, seed):
@@ -107,10 +219,28 @@ class TestUsers:
 
 
 class TestDaylist:
-    def uid(cls, db, anon_user: bool = True):
-        if anon_user:
-            return db.add_anon_user()
-        return db.add_user()  # BOOKMARK: handle real users
+
+    @staticmethod
+    @pytest.fixture(autouse=True)
+    def seed(db):
+        userid = db.add_anon_user()
+        db.add_daylist(user_id=userid, expiry="2014-02-14T00:00:00+05")
+        db.add_daylist(user_id=userid, expiry="2024-07-24T00:00:00+05")
+
+        userid = db.add_registered_user(email="test@example.com", password_hash="12345")
+        db.add_daylist(user_id=userid, expiry="2022-03-14T00:00:00-04")
+        db.add_daylist(user_id=userid, expiry="2024-08-03T00:00:00+07")
+
+        yield
+
+    @staticmethod
+    @pytest.fixture(params=[True, False])  # is user registered?
+    def uid(db, request) -> int:
+        if request.param:
+            uid = db.add_registered_user(email="sam@lotr.com", password_hash="mrfrodo")
+        else:
+            uid = db.add_anon_user()
+        return uid
 
     # get
 
@@ -118,19 +248,16 @@ class TestDaylist:
         result = db.get_active_daylist(user_id=-1)
         assert result is None
 
-    def test_get_active_daylist_none(cls, db):
-        uid = cls.uid(db)
+    def test_get_active_daylist_none(cls, db, uid):
         result = db.get_active_daylist(user_id=uid)
         assert result is None
 
-    def test_get_active_daylist_old(cls, db):
-        uid = cls.uid(db)
+    def test_get_active_daylist_old(cls, db, uid):
         db.add_daylist(user_id=uid, expiry=OLD_TIME)
         result = db.get_active_daylist(user_id=uid)
         assert result is None
 
-    def test_get_active_daylist(cls, db):
-        uid = cls.uid(db)
+    def test_get_active_daylist(cls, db, uid):
         expiry_str = FUTURE_TIME
         db.add_daylist(user_id=uid, expiry=expiry_str)
 
@@ -141,6 +268,14 @@ class TestDaylist:
 
     # add
 
+    def test_add_daylist(cls, db, uid):
+        expiry_str = FUTURE_TIME
+        db.add_daylist(user_id=uid, expiry=expiry_str)
+
+        result = db.add_daylist(user_id=uid, expiry=expiry_str)
+        # successful creation + return id for both registered and anon
+        assert isinstance(result, int) and result > 0
+
     @pytest.mark.parametrize(
         "expiry",
         [
@@ -148,31 +283,19 @@ class TestDaylist:
             datetime.fromisoformat(FUTURE_TIME),
         ],
     )
-    def test_add_daylist_types(cls, db, expiry):
-        uid = cls.uid(db)
-
+    def test_add_daylist_types(cls, db, uid, expiry):
         result = db.add_daylist(user_id=uid, expiry=expiry)
         # successful creation + return id for both types
         assert isinstance(result, int) and result > 0
 
-    @pytest.mark.parametrize("bad_value", [-1, None])
-    def test_add_daylist_bad_user(cls, db, bad_value):
-        uid = bad_value
+    @pytest.mark.parametrize("bad_uid", [-1, None, 1_000_000])
+    def test_add_daylist_bad_user(cls, db, bad_uid):
+        uid = bad_uid
         expiry_str = FUTURE_TIME
 
         # inputting bad user raises error
         with pytest.raises(IntegrityError):
             db.add_daylist(user_id=uid, expiry=expiry_str)
-
-    @pytest.mark.parametrize("is_anon", [True])  # BOOKMARK: test with registered user
-    def test_add_daylist(cls, db, is_anon):
-        uid = cls.uid(db, is_anon)
-        expiry_str = FUTURE_TIME
-        db.add_daylist(user_id=uid, expiry=expiry_str)
-
-        result = db.add_daylist(user_id=uid, expiry=expiry_str)
-        # successful creation + return id for both types
-        assert isinstance(result, int) and result > 0
 
 
 # Task functions
@@ -180,26 +303,42 @@ class TestDaylist:
 
 class TestTask:
 
-    @pytest.fixture
-    def uid(cls, db):
-        return db.add_anon_user()
+    @staticmethod
+    @pytest.fixture(autouse=True)
+    def seed(db):
+        userid = db.add_anon_user()
+        db.add_daylist(user_id=userid, expiry=FUTURE_TIME)
+        db.add_task_for_user(user_id=userid, title="A1", estimate="PT1M")
+        db.add_task_for_user(user_id=userid, title="A2", estimate="PT1M")
 
-    @pytest.fixture
-    def lid(cls, db, uid):
-        return db.add_daylist(user_id=uid, expiry=FUTURE_TIME)
+        userid = db.add_registered_user(email="test@example.com", password_hash="12345")
+        db.add_daylist(user_id=userid, expiry=FUTURE_TIME)
+        db.add_task_for_user(user_id=userid, title="B1", estimate="PT1H")
 
-    @pytest.fixture
-    def uid_with_list(cls, uid, lid):
+        yield
+
+    @staticmethod
+    @pytest.fixture(params=[True, False])  # is user registered?
+    def uid(db, request) -> int:
+        if request.param:
+            uid = db.add_registered_user(email="sam@lotr.com", password_hash="ring")
+        else:
+            uid = db.add_anon_user()
         return uid
+
+    @staticmethod
+    @pytest.fixture
+    def lid(db, uid):
+        return db.add_daylist(user_id=uid, expiry=FUTURE_TIME)
 
     def test_get_task(cls, db, lid):
         the_title = "ssss"
         the_estimate = "PT1M"
-        tid = db.add_task_to_list(
+        task_id = db.add_task_to_list(
             daylist_id=lid, title=the_title, estimate=the_estimate
         )
 
-        result = db.get_task(id=tid)
+        result = db.get_task(id=task_id)
         assert result["title"] == the_title
         assert isinstance(result["estimate"], timedelta)
 
@@ -207,39 +346,39 @@ class TestTask:
         result = db.get_task(id=0)
         assert result is None
 
-    def test_get_active_tasks_for_user(cls, db, uid_with_list):
+    def test_get_active_tasks_for_user(cls, db, uid, lid):
         task_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="one", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="two", estimate="PT1H5M"),
         ]
         done_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="cat", estimate="PT1H5M"),
         ]
         for task_id in done_ids:
             db.complete_task(id=task_id)
 
-        result = list(db.get_current_tasks(user_id=uid_with_list))
+        result = list(db.get_current_tasks(user_id=uid))
 
         # all tasks are returned
         expected_ids = task_ids + done_ids
         assert len(result) == len(expected_ids)
         assert expected_ids == [task["id"] for task in result]
 
-    def test_get_active_tasks_ordering(cls, db, uid_with_list):
+    def test_get_active_tasks_ordering(cls, db, uid, lid):
         task_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="one", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="two", estimate="PT1H5M"),
         ]
         # BOOKMARK: add test that these are in order after editing might affect
         done_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="dog", estimate="PT1H5M"),
         ]
         done_ids.reverse()  # check that finish time is different than add time
         for task_id in done_ids:
             db.complete_task(id=task_id)
 
-        result = list(db.get_current_tasks(user_id=uid_with_list))
+        result = list(db.get_current_tasks(user_id=uid))
 
         # all tasks are returned
         expected_ids = task_ids + done_ids
@@ -251,8 +390,8 @@ class TestTask:
         result = list(result)
         assert len(result) == 0
 
-    def test_get_active_tasks_for_user_empty(cls, db, uid_with_list):
-        result = db.get_current_tasks(user_id=uid_with_list)
+    def test_get_active_tasks_for_user_empty(cls, db, uid, lid):
+        result = db.get_current_tasks(user_id=uid)
         result = list(result)
         assert len(result) == 0
 
@@ -265,20 +404,20 @@ class TestTask:
         result = list(result)
         assert len(result) == 0
 
-    def test_get_pending_tasks_for_user(cls, db, uid_with_list):
+    def test_get_pending_tasks_for_user(cls, db, uid, lid):
         task_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="two", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="one", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="two", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="cat", estimate="PT1H5M"),
         ]
         done_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="dog", estimate="PT1H5M"),
         ]
         for task_id in done_ids:
             db.complete_task(id=task_id)
 
-        result = db.get_pending_tasks(user_id=uid_with_list)
+        result = db.get_pending_tasks(user_id=uid)
         result = list(result)
 
         # only pending tasks are returned
@@ -292,8 +431,8 @@ class TestTask:
         result = list(result)
         assert len(result) == 0
 
-    def test_get_pending_tasks_for_user_empty(cls, db, uid_with_list):
-        result = db.get_pending_tasks(user_id=uid_with_list)
+    def test_get_pending_tasks_for_user_empty(cls, db, uid, lid):
+        result = db.get_pending_tasks(user_id=uid)
         result = list(result)
         assert len(result) == 0
 
@@ -306,37 +445,35 @@ class TestTask:
         result = list(result)
         assert len(result) == 0
 
-    def test_get_done_tasks_for_user(cls, db, uid_with_list):
-        db.add_task_for_user(user_id=uid_with_list, title="one", estimate="PT1H5M")
-        extra = db.add_task_for_user(
-            user_id=uid_with_list, title="two", estimate="PT1H5M"
-        )
+    def test_get_done_tasks_for_user(cls, db, uid, lid):
+        db.add_task_for_user(user_id=uid, title="one", estimate="PT1H5M")
+        extra = db.add_task_for_user(user_id=uid, title="two", estimate="PT1H5M")
         done_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="dog", estimate="PT1H5M"),
             extra,
         ]
         for task_id in done_ids:
             db.complete_task(id=task_id)
 
-        result = db.get_done_tasks(user_id=uid_with_list)
+        result = db.get_done_tasks(user_id=uid)
         result = list(result)
 
         # only done tasks are returned
         assert len(result) == len(done_ids)
         assert done_ids == [task["id"] for task in result]
 
-    def test_get_done_tasks_for_user_ordering(cls, db, uid_with_list):
+    def test_get_done_tasks_for_user_ordering(cls, db, uid, lid):
         done_ids = [
-            db.add_task_for_user(user_id=uid_with_list, title="cat", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="dog", estimate="PT1H5M"),
-            db.add_task_for_user(user_id=uid_with_list, title="fly", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="cat", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="dog", estimate="PT1H5M"),
+            db.add_task_for_user(user_id=uid, title="fly", estimate="PT1H5M"),
         ]
         done_ids.reverse()  # finish time != creation time
         for task_id in done_ids:
             db.complete_task(id=task_id)
 
-        result = db.get_done_tasks(user_id=uid_with_list)
+        result = db.get_done_tasks(user_id=uid)
         result = list(result)
 
         # tasks in finish order not creation order
