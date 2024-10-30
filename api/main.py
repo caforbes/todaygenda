@@ -14,18 +14,21 @@ import src.operations as backend
 
 def configure(app: FastAPI, settings: Settings):
     """Set up app settings from env."""
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.allowed_origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
-        allow_headers=[
+    cors_settings = {
+        "allow_origins": settings.allowed_origins,
+        "allow_credentials": True,
+        "allow_methods": ["GET", "POST", "HEAD", "OPTIONS"],
+        "allow_headers": [
             "Access-Control-Allow-Headers",
             "Content-Type",
             "Authorization",
             "Access-Control-Allow-Origin",
         ],
-    )
+    }
+    if settings.allowed_origins_regex:
+        cors_settings["allow_origin_regex"] = settings.allowed_origins_regex
+
+    app.add_middleware(CORSMiddleware, **cors_settings)
 
 
 app = FastAPI()

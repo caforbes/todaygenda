@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     testing: bool = False
     allowed_origins: list[str] = []
+    allowed_origins_regex: str | None = None
     secret_key: str = "mysupersecrettestingkey"
     guest_user_key: str = ""
     database_url: str = ""
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=("docker.env", ".env"), extra="allow")
 
     @model_validator(mode="after")
-    def psql_dialect(self):
+    def psql_dialect(self):  # type: ignore
         """Ensure correct psql dialect is used in db url."""
         bad_form = "postgres://"
         good_form = "postgresql://"
