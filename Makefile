@@ -41,3 +41,12 @@ migrate: migrate-initial
 	@echo "Migration applied."
 backupdb:
 	pg_dump ${DATABASE_URL} > backup.sql
+backupdb-prod:
+	heroku pg:backups:capture
+	@sleep 10
+	heroku pg:backups:download
+	@mv latest.dump "backup-"$(date "+%Y%m%d-%H%M%S")".dump"
+	@echo "Backup saved with timestamp"
+release: backupdb-prod
+	git push heroku main
+	heroku run bin/dbmate --no-dump-schema up
